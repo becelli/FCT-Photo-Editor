@@ -4,15 +4,14 @@ from classes.image import Image
 
 class Adapter:
     @staticmethod
-    def QImg2Img(qimage: QImage, isRGB: bool = False) -> Image:
+    def QImg2Img(qimage: QImage) -> Image:
         canvas = []
         for y in range(qimage.height()):
             for x in range(qimage.width()):
                 pixel = qimage.pixel(x, y)
                 color = QColor(pixel)
-                canvas.append(color.getRgb())
-
-        return Image(size=[qimage.width(), qimage.height()], canvas=canvas, isRGB=isRGB)
+                canvas.append(color.getRgb()[:-1])
+        return Image(size=[qimage.width(), qimage.height()], canvas=canvas)
 
     @staticmethod
     def Img2QImg(image: Image) -> QImage:

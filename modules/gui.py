@@ -2,7 +2,6 @@ import sys
 from PyQt6.QtWidgets import (
     QApplication,
     QWidget,
-    QGridLayout,
     QPushButton,
     QLabel,
     QFileDialog,
@@ -21,91 +20,10 @@ from PyQt6.QtCore import Qt
 from classes.image import Image
 from classes.adapter import Adapter
 from modules.filters import Filters
-
+from modules.statemanager import StateManager, CanvaState
+from modules.qt_override import QGrid, QObjects, QDialogs
 
 # Override the default QWidget to automatically center the elements
-class QGrid(QGridLayout):
-    def addWidget(self, widget, row, column, rowSpan=1, columnSpan=1):
-        super().addWidget(widget, row, column, rowSpan, columnSpan)
-        self.setAlignment(widget, Qt.AlignmentFlag.AlignCenter)
-
-
-class CanvaState:
-    def __init__(self, inp: Image = None, out: Image = None):
-        self.input, self.output = inp, out
-
-
-class StateManager:
-    def __init__(self, max_states=16, initial_state=None):
-        self.s = initial_state if initial_state else []
-        self.cur = -1
-        self.max = max_states
-
-    def add(self, state: CanvaState):
-        if len(self.s) == self.max:
-            self.s.pop(0)
-            self.cur -= 1
-
-        self.cur += 1
-        self.s.append(state)
-
-    def prev(self):
-        if self.cur > 0:
-            changed = "input" if self.s[self.cur].input else "output"
-            self.cur -= 1
-            i = 0
-            while self.cur - i >= 0:
-                if (changed == "output" and self.s[self.cur - i].output) or (
-                    changed == "input" and self.s[self.cur - i].input
-                ):
-                    return self.s[self.cur - i]
-                i += 1
-        return None
-
-    def next(self):
-        """
-        Go to the next state
-        """
-        if self.cur < len(self.s) - 1:
-            self.cur += 1
-            return self.s[self.cur]
-        return None
-
-
-class Dialogs(QWidget):
-    def open_image(self):
-        filename, _ = QFileDialog.getOpenFileName(
-            self, "Open Image", "", "Image Files (*.png *.jpg *.bmp)"
-        )
-        return filename
-
-    def save_image(self):
-        filename, _ = QFileDialog.getSaveFileName(
-            self, "Save Image", "", "Image Files (*.png *.jpg *.bmp)"
-        )
-        return filename
-
-
-class QObjects:
-    def canvas(self, width: int, height: int) -> QLabel:
-        img = QLabel()
-        image = QImage(width, height, QImage.Format.Format_RGB32)
-        image.fill(QColor(255, 255, 255))
-
-        r = 50
-        for i in range(width):
-            for j in range(height):
-                # Draw a circle in the center of the image
-                if (i - width / 2) ** 2 + (j - height / 2) ** 2 < r**2:
-                    image.setPixel(i, j, QColor(255, 0, 0).rgb())
-
-        img.setPixmap(QPixmap(image))
-        return img
-
-    def label(self, text: str) -> QLabel:
-        l = QLabel()
-        l.setText(text)
-        return l
 
 
 class MainWindow(QMainWindow):
@@ -113,16 +31,17 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.title = "Digital Image Processing"
         self.w = 750
-        self.h= 300
+        self.h = 300
+        self.filters = None
         self.input_image: Image = None  # Matrix of the input image
-        self.input_canvas: QLabel = QLabel()# Canvas
+        self.input_canvas: QLabel = QLabel()  # Canvas
         self.output_image: Image = None  # Matrix of the output image
         self.output_canvas: QLabel = QLabel()  # Canvas
         self.initUI()
 
     def initUI(self) -> None:
-        self.setWindowTitle(self.title)  # Título da janela
-        self.setFixedSize(self.w, self.h)  # Tamanho fixo da janela
+        self.setWindowTitle(self.title)
+        self.setFixedSize(self.w, self.h)
         qtRectangle = self.frameGeometry()
         centerPoint = QGuiApplication.primaryScreen().availableGeometry().center()
         qtRectangle.moveCenter(centerPoint)
@@ -143,22 +62,6 @@ class MainWindow(QMainWindow):
         self.editMenu(mb.addMenu("Edit"))
         self.filtersMenu(mb.addMenu("Filters"))
         self.setMenuBar(mb)
-
-    def create_button(
-        self,
-        name="Button",
-        func=None,
-        shortcut=None,
-        tooltip=None,
-    ) -> QPushButton:
-        button = QPushButton(name)
-        if func:
-            button.clicked.connect(func)
-        if shortcut:
-            button.setShortcut(shortcut)
-        if tooltip:
-            button.setToolTip(tooltip)
-        return button
 
     def main_grid(self):
         grid = QGrid()
@@ -189,20 +92,30 @@ class MainWindow(QMainWindow):
         grid.addWidget(self.output_canvas, 1, 2)
 
         # Initial state
-        self.state.add(CanvaState(inp=self.input_image))
-        self.state.add(CanvaState(out=self.output_image))
+        self.reload_input_canvas()
+        self.reload_output_canvas()
 
         grid.setRowStretch(3, 1)
+        self.histogram(grid)
         widget = QWidget()
+        # widget.setStyleSheet("background-color: #2a2a2a;")
         widget.setLayout(grid)
         self.setCentralWidget(widget)
 
+    def histogram(self, grid):
+        widget = QWidget()
+        widget.setFixedSize(self.w, int(self.h / 4))
+        widget.setContentsMargins(0, 10, 0, 0)
+        # 4 histograms (red, green, blue, gray)
+
+        grid.addWidget(widget, 2, 0, 1, 3)
+
     def fileMenu(self, fileMenu):
         openAct = self.add_submenu(
-            "Open", self.open_image_dialog, "Ctrl+O", "Open an existing file"
+            "Open", self.open_image, "Ctrl+O", "Open an existing file"
         )
         saveAct = self.add_submenu(
-            "Save", self.save_image_dialog, "Ctrl+S", "Save the document"
+            "Save", self.save_image, "Ctrl+S", "Save the document"
         )
         exitAct = self.add_submenu("Exit", self.close, "Ctrl+Q", "Exit the application")
         # Add actions to the menus
@@ -214,11 +127,12 @@ class MainWindow(QMainWindow):
     def filtersMenu(self, filtersMenu):
         f = lambda filter: self.apply_filter(filter)
         filters = {
-            "Blur": lambda: f("blur"),
             "Grayscale": lambda: f("grayscale"),
+            "Equalize": lambda: f("equalize"),
             "Negative": lambda: f("negative"),
             "Binarize": lambda: f("binarize"),
-            "Expand Contrast": lambda: f("expand_contrast"),
+            "Gaussian Blur": lambda: f("blur"),
+            "Blur Median": lambda: f("blur_median"),
         }
 
         for i, (name, filter) in enumerate(filters.items()):
@@ -239,59 +153,82 @@ class MainWindow(QMainWindow):
         # TODO remove temp code!
         # filters1 = Filters(self.input_image)
         # img = filters1.grayscale()
-        filters = Filters(self.input_image)
+        self.filters = self.filters if self.filters else Filters(self.input_image)
 
         output = None
         match filter:
             case "grayscale":
-                output = filters.grayscale()
-            case "expand_contrast":
-                output = filters.expand_contrast()
+                output = self.filters.grayscale()
+            case "equalize":
+                output = self.filters.equalize()
             case "negative":
-                output = filters.negative()
+                output = self.filters.negative()
             case "binarize":
-                output = filters.binarize()
+                output = self.filters.binarize()
             case "blur":
-                output = filters.blur()
+                output = self.filters.blur()
+            case "blur_median":
+                output = self.filters.blur_median()
             case _:
-                output = None
+                pass
         if output:
             self.update_output(output)
 
+    # Update the canvas with the new image
     def update_output(self, image: Image):
         self.output_image = image
         self.reload_output_canvas()
-        self.state.add(CanvaState(out=self.output_image))
 
     def apply_output(self):
         self.input_image = self.output_image
         self.reload_input_canvas()
-        self.state.add(CanvaState(inp=self.input_image))
 
     def reload_input_canvas(self):
         self.input_canvas.setPixmap(QPixmap(Adapter.Img2QImg(self.input_image)))
+        self.state.add(CanvaState(inp=self.input_image))
+        self.filters = Filters(self.input_image)
 
     def reload_output_canvas(self):
         self.output_canvas.setPixmap(QPixmap(Adapter.Img2QImg(self.output_image)))
+        self.state.add(CanvaState(out=self.output_image))
 
+    # Qt Manipulations
     def create_canvas(self, name: str = "Canvas") -> tuple[QLabel, QLabel]:
         label = QObjects().label(name)
         label.setFont(QFont("Monospace", 16))
         canvas = QObjects().canvas(320, 240)
         return label, canvas
 
-    def open_image_dialog(self):
-        filename = Dialogs().open_image()
-        if filename:
-            pixmap = QPixmap(filename).scaled(320, 240)
-            self.input_image = Adapter.QImg2Img(QImage(pixmap))
-            self.input_canvas.setPixmap(pixmap)
+    def create_button(
+        self,
+        name="Button",
+        func=None,
+        shortcut=None,
+        tooltip=None,
+    ) -> QPushButton:
+        button = QPushButton(name)
+        if func:
+            button.clicked.connect(func)
+        if shortcut:
+            button.setShortcut(shortcut)
+        if tooltip:
+            button.setToolTip(tooltip)
+        return button
 
-    def save_image_dialog(self):
-        filename = Dialogs().save_image()
-        if filename:
-            self.input_canvas.pixmap().save(filename)
+    def create
 
+
+    def add_submenu(self, name=None, func=None, shortcut=None, tooltip=None):
+        m = QAction(name, self)
+        if func:
+            m.triggered.connect(lambda: func())
+        if shortcut:
+            m.setShortcut(shortcut)
+        if tooltip:
+            m.setToolTip(tooltip)
+        return m
+
+    # State management
     def undo(self):
         s = self.state.prev()
         if s:
@@ -312,15 +249,18 @@ class MainWindow(QMainWindow):
                 self.output_image = s.output
                 self.reload_output_canvas()
 
-    def add_submenu(self, name=None, func=None, shortcut=None, tooltip=None):
-        m = QAction(name, self)
-        if func:
-            m.triggered.connect(lambda: func())
-        if shortcut:
-            m.setShortcut(shortcut)
-        if tooltip:
-            m.setToolTip(tooltip)
-        return m
+    # File management
+    def open_image(self):
+        filename = QDialogs().open_path()
+        if filename:
+            pixmap = QPixmap(filename).scaled(320, 240)
+            self.input_image = Adapter.QImg2Img(QImage(pixmap))
+            self.reload_input_canvas()
+
+    def save_image(self):
+        filename = QDialogs().save_path()
+        if filename:
+            self.input_canvas.pixmap().save(filename)
 
 
 def main():

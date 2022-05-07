@@ -1,13 +1,13 @@
 class Image:
-    def __init__(self, size: list, canvas: list, isRGB: bool = True) -> None:
+    def __init__(self, size: list, canvas: list) -> None:
         self.size = size
-        self.isRGB = isRGB
         self.canvas = canvas
 
     def get_pixel(self, x: int, y: int) -> list:
         """
         Returns the RGB values of a pixel.
         """
+        # y * width + x
         return self.canvas[y * self.size[0] + x]
 
     def set_pixel(self, x: int, y: int, rgb: list) -> None:
@@ -52,3 +52,15 @@ class Image:
                 if i >= 0 and i < w and j >= 0 and j < h:
                     neighbours.append(self.get_pixel(i, j))
         return neighbours
+
+    def get_histogram(self) -> dict:
+        """
+        Returns the histogram of the image.
+        """
+        histogram = {}
+        for pixel in self.canvas:
+            if pixel not in histogram:
+                histogram[pixel] = 1
+            else:
+                histogram[pixel] += 1
+        return histogram

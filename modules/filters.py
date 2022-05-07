@@ -5,47 +5,38 @@ from ctypes import *
 class Filters:
     def __init__(self, img: Image):
         self.img: Image = img
+        self.isRGB = self._verify_is_RGB()
 
-    def grayscale(self, isCie=False) -> Image:
+    def _verify_is_RGB(self) -> bool:
+        for pixel in self.img.get_canvas():
+            if pixel[0] != pixel[1] or pixel[0] != pixel[2]:
+                return True
+        return False
+
+    def grayscale(self) -> Image:
         """
         Converts an img to a grayscale version.
         """
-        canvas = self.img.get_canvas()
+        if not self.isRGB:  # Verify if the img is already grayscale
+            return self.img
+
         # Average of the RGB values
-        f = (
-            lambda pixel: int(0.299 * pixel[0] + 0.587 * pixel[1] + 0.114 * pixel[2])
-            if not isCie
-            else int(sum(pixel) / 3)
-        )
-        npixel = lambda pixel: (f(pixel), f(pixel), f(pixel))
-        pixels = [npixel(pixel) for pixel in canvas]
-        return Image(size=self.img.get_size(), canvas=pixels)
+        f = lambda pixel: int(0.299 * pixel[0] + 0.587 * pixel[1] + 0.114 * pixel[2])
 
-    def expand_contrast(self) -> Image:
-        """
-        Expands the contrast of an img.
-        """
+        def new_pixel(pixel):
+            c = f(pixel)
+            return (c, c, c)
+
         canvas = self.img.get_canvas()
-        pixels = []
-        # Expand the contrast
-        if not self.img.isRGB:
-            minimum = min(canvas)[0]
-            maximum = max(canvas)[0]
-            # do not divide by zero
-            f = lambda pixel: int(
-                ((pixel - minimum + 1) * 255) / (maximum - minimum + 1) % 256
-            )
-            for pixel in canvas:
-                r = f(pixel[0])
-                pixels.append((r, r, r))
-        else:
-            minimum = min(canvas)
-            maximum = max(canvas)
-            f = lambda pixel, i: int(pixel[i] * 255 / ((maximum[i] - minimum[i]) + 1))
-            npixel = lambda pixel: (f(pixel, 0), f(pixel, 1), f(pixel, 2))
-            pixels = [npixel(pixel) for pixel in canvas]
+        pixels = [new_pixel(p) for p in canvas]
 
         return Image(size=self.img.get_size(), canvas=pixels)
+
+    def equalize(self) -> Image:
+        """
+        Equalizes the histogram of an img.
+        """
+        pass
 
     def negative(self) -> Image:
         """
@@ -53,33 +44,42 @@ class Filters:
         """
         canvas = self.img.get_canvas()
         pixels = []
-        if not self.img.isRGB:
+        # Grayscale
+        if not self.isRGB:
             f = lambda pixel: 255 - pixel[0]
             for pixel in canvas:
-                pixels.append((f(pixel), f(pixel), f(pixel)))
+                neg = f(pixel)
+                pixels.append((neg, neg, neg))
+        # RGB
         else:
             f = lambda pixel: (255 - pixel[0], 255 - pixel[1], 255 - pixel[2])
             pixels = [f(pixel) for pixel in canvas]
+
         return Image(size=self.img.get_size(), canvas=pixels)
 
     def binarize(self, threshold: int = 128) -> Image:
         """
-        Binarizes an img.
+        Binarizes the intensity of the pixels.
+        For Grayscale images, it's known as a real B&W.
+        For RGB images, it will binarize each color channel.
         """
         canvas = self.img.get_canvas()
         pixels = []
-        if not self.img.isRGB:
-            f = lambda pixel: 255 if pixel[0] > threshold else 0
+        # Grayscale
+        if not self.isRGB:
+            f = lambda pixel: 255 if pixel[0] >= threshold else 0
             for pixel in canvas:
                 c = f(pixel)
                 pixels.append((c, c, c))
-        else:
+
+        else:  # RGB
             f = lambda pixel: (
-                255 if pixel[0] > threshold else 0,
-                255 if pixel[1] > threshold else 0,
-                255 if pixel[2] > threshold else 0,
+                255 if pixel[0] >= threshold else 0,
+                255 if pixel[1] >= threshold else 0,
+                255 if pixel[2] >= threshold else 0,
             )
             pixels = [f(pixel) for pixel in canvas]
+
         return Image(size=self.img.get_size(), canvas=pixels)
 
     def blur(self, level: int = 2) -> Image:
@@ -90,29 +90,47 @@ class Filters:
         w = self.img.get_width()
         h = self.img.get_height()
 
-        # if not self.img.isRGB:
-        for y in range(h):
-            for x in range(w):
-                # Get neighbours
-                neighbours = self.img.get_pixel_area(x, y, level)
-                mean = int(sum(pixel[0] for pixel in neighbours) / len(neighbours))
-                pixel = (mean, mean, mean)
-                pixels.append(pixel)
+        if not self.isRGB:
+            for y in range(h):
+                for x in range(w):
+                    # Get neighbours
+                    neighbours = self.img.get_pixel_area(x, y, level)
+                    mean = int(sum(pixel[0] for pixel in neighbours) / len(neighbours))
+                    pixels.append((mean, mean, mean))
+        else:
+            for y in range(h):
+                for x in range(w):
+                    neighbours = self.img.get_pixel_area(x, y, level)
+                    r = int(sum(pixel[0] for pixel in neighbours) / len(neighbours))
+                    g = int(sum(pixel[1] for pixel in neighbours) / len(neighbours))
+                    b = int(sum(pixel[2] for pixel in neighbours) / len(neighbours))
+                    pixels.append((r, g, b))
+
         return Image(size=self.img.get_size(), canvas=pixels)
 
-    def blur_c(self, level: int = 2) -> Image:
+    def blur_median(self, level: int = 3) -> Image:
         """
         Blurs an img.
         """
-        pixels = []
+        pixels: list = []
         w = self.img.get_width()
         h = self.img.get_height()
+        if not self.isRGB:
+            for y in range(h):
+                for x in range(w):
+                    neighbours = self.img.get_pixel_area(x, y, level)
+                    neighbours.sort()
+                    mean = neighbours[len(neighbours) // 2][0]
+                    pixels.append((mean, mean, mean))
 
-        for y in range(h):
-            for x in range(w):
-                # Get neighbours
-                neighbours = self.img.get_pixel_area(x, y, level)
-                mean = int(sum(pixel[0] for pixel in neighbours) / len(neighbours))
-                pixel = (mean, mean, mean)
-                pixels.append(pixel)
+        else:
+            for y in range(h):
+                for x in range(w):
+                    neighbours = self.img.get_pixel_area(x, y, level)
+                    neighbours.sort()
+                    r = neighbours[len(neighbours) // 2][0]
+                    g = neighbours[len(neighbours) // 2][1]
+                    b = neighbours[len(neighbours) // 2][2]
+                    pixels.append((r, g, b))
+
         return Image(size=self.img.get_size(), canvas=pixels)
