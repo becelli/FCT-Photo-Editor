@@ -1,0 +1,52 @@
+from PIL import Image as PILImage
+from classes.image import Image
+
+
+class ImageIO:
+    """
+    Loads an img from a URL.
+    """
+
+    def load(self, url: str = None) -> Image:
+        """
+        Loads an img from a URL.
+        """
+        import requests
+        from io import BytesIO
+
+        pil_img = None
+        try:
+            if "://" in url:
+                response = requests.get(url)
+                pil_img = PILImage.open(BytesIO(response.content))
+            else:
+                pil_img = PILImage.open(url)
+
+            image: Image = self._pil_img_to_list(pil_img)
+            return image
+        except Exception as e:
+            raise e
+
+    def save(self, img: Image, path: str) -> None:
+        """
+        Saves an img to a path.
+        """
+        img_pil = self._list_to_pil_img(img)
+
+        img_pil.save(path)
+
+    def _pil_img_to_list(self, img: PILImage) -> Image:
+        """
+        Converts an img to a list of RGB values.
+        """
+        # Format: [200, 300], [[255, 13, 25], [255, 255, 255]...]
+        return Image(size=list(img.size), canvas=list(img.getdata()))
+
+    def _list_to_pil_img(self, img: Image) -> PILImage:
+        img_size = img.get_size()
+        img_data = img.get_canvas()
+        # Transform the list into a PIL Image
+        new_img = PILImage.new("RGB", img_size)
+        new_img.putdata(img_data)
+
+        return new_img
