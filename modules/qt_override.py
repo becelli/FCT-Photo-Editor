@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import QGridLayout, QLabel, QWidget, QFileDialog
 from PyQt6.QtGui import QPixmap, QColor, QImage
 from PyQt6.QtCore import Qt
-from PyQtChart import QChart, QChartView, QLineSeries, QValueAxis
+import matplotlib.pyplot as plt
 
 
 class QGrid(QGridLayout):
@@ -23,9 +23,7 @@ class QObjects:
         l.setText(text)
         return l
 
-    def histogram(self, width: int, height: int, data: list) -> QLabel:
-        img = QLabel()
-        image = QImage(width, height, QImage.Format.Format_RGB32)
+
 
 
 class QDialogs(QWidget):

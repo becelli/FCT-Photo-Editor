@@ -215,7 +215,6 @@ class MainWindow(QMainWindow):
             button.setToolTip(tooltip)
         return button
 
-    def create
 
 
     def add_submenu(self, name=None, func=None, shortcut=None, tooltip=None):
