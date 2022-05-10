@@ -6,6 +6,7 @@ from PyQt6.QtWidgets import (
     QLabel,
     QFileDialog,
     QMainWindow,
+    QMdiSubWindow,
 )
 from PyQt6.QtGui import (
     QIcon,
@@ -61,6 +62,7 @@ class MainWindow(QMainWindow):
         self.fileMenu(mb.addMenu("File"))
         self.editMenu(mb.addMenu("Edit"))
         self.filtersMenu(mb.addMenu("Filters"))
+        self.toolsMenu(mb.addMenu("Tools"))
         self.setMenuBar(mb)
 
     def main_grid(self):
@@ -96,19 +98,72 @@ class MainWindow(QMainWindow):
         self.reload_output_canvas()
 
         grid.setRowStretch(3, 1)
-        self.histogram(grid)
         widget = QWidget()
-        # widget.setStyleSheet("background-color: #2a2a2a;")
         widget.setLayout(grid)
         self.setCentralWidget(widget)
 
-    def histogram(self, grid):
-        widget = QWidget()
-        widget.setFixedSize(self.w, int(self.h / 4))
-        widget.setContentsMargins(0, 10, 0, 0)
-        # 4 histograms (red, green, blue, gray)
+    def histogram(self) -> None:
+        """
+        Plot the histogram of an image.
+        """
+        # Change figsize
+        import matplotlib.pyplot as plt
+        import numpy as np
+        from modules.functions import gray_from_rgb
 
-        grid.addWidget(widget, 2, 0, 1, 3)
+        plt.rcParams["figure.figsize"] = (2, 2)
+        # plt.rcParams["figure.dpi"] = 40
+        image = np.array(self.input_image.get_canvas())
+        red, green, blue = image.T
+        gray = [gray_from_rgb(r, g, b) for r, g, b in zip(red, green, blue)]
+        # Create 256 bins (integers)
+        bins = np.linspace(0, 256, 257)
+
+        # For each bin, count the number of pixels with that value
+        red_counter = {b: np.count_nonzero(red == b) for b in bins}
+        green_counter = {b: np.count_nonzero(green == b) for b in bins}
+        blue_counter = {b: np.count_nonzero(blue == b) for b in bins}
+        gray_counter = {b: np.count_nonzero(gray == b) for b in bins}
+        max_value = max(
+            max(red_counter.values()),
+            max(green_counter.values()),
+            max(blue_counter.values()),
+            max(gray_counter.values()),
+        )
+        # max_value = max(gray_counter.values())
+        # Normalize the counts to [0, 1]. The most frequent value will be 1
+        red_counter = {b: c / max_value for b, c in red_counter.items()}
+        green_counter = {b: c / max_value for b, c in green_counter.items()}
+        blue_counter = {b: c / max_value for b, c in blue_counter.items()}
+        gray_counter = {b: c / max_value for b, c in gray_counter.items()}
+        plt.subplot(2, 2, 1)
+        plt.bar(bins, red_counter.values(), color="red", width=1)
+
+        plt.ylim(0, 1.05)
+        plt.subplot(2, 2, 2)
+        plt.bar(bins, green_counter.values(), color="green", width=1)
+
+        plt.ylim(0, 1.05)
+        plt.subplot(2, 2, 3)
+        plt.bar(bins, blue_counter.values(), color="blue", width=1)
+        plt.ylim(0, 1.05)
+        plt.subplot(2, 2, 4)
+        plt.bar(bins, gray_counter.values(), color="gray", width=2)
+        plt.ylim(0, 1.05)
+        plt.show()
+
+    def channels(self) -> None:
+        """
+        Plot the channels of an image.
+        """
+        f = Filters(self.input_image)
+        images = f.channels_separation()
+        # Create a subwindow
+        subwindow = QMdiSubWindow()
+        subwindow.setWindowTitle("Canvas")
+        subwindow.setWidget(QWidget())
+
+        subwindow.show()
 
     def fileMenu(self, fileMenu):
         openAct = self.add_submenu(
@@ -131,6 +186,7 @@ class MainWindow(QMainWindow):
             "Equalize": lambda: f("equalize"),
             "Negative": lambda: f("negative"),
             "Binarize": lambda: f("binarize"),
+            "Salt and Pepper": lambda: f("salt_and_pepper"),
             "Gaussian Blur": lambda: f("blur"),
             "Blur Median": lambda: f("blur_median"),
         }
@@ -148,6 +204,15 @@ class MainWindow(QMainWindow):
         for name, (func, shortcut) in commands.items():
             m = self.add_submenu(name, func, shortcut)
             editMenu.addAction(m)
+
+    def toolsMenu(self, toolsMenu):
+        commands = {
+            "Histogram": (self.histogram, "Ctrl+H"),
+            "Channels": (self.channels, "Ctrl+C"),
+        }
+        for name, (func, shortcut) in commands.items():
+            m = self.add_submenu(name, func, shortcut)
+            toolsMenu.addAction(m)
 
     def apply_filter(self, filter: str) -> Image:
         # TODO remove temp code!
@@ -169,6 +234,8 @@ class MainWindow(QMainWindow):
                 output = self.filters.blur()
             case "blur_median":
                 output = self.filters.blur_median()
+            case "salt_and_pepper":
+                output = self.filters.salt_and_pepper()
             case _:
                 pass
         if output:
@@ -214,8 +281,6 @@ class MainWindow(QMainWindow):
         if tooltip:
             button.setToolTip(tooltip)
         return button
-
-
 
     def add_submenu(self, name=None, func=None, shortcut=None, tooltip=None):
         m = QAction(name, self)

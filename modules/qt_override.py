@@ -24,8 +24,6 @@ class QObjects:
         return l
 
 
-
-
 class QDialogs(QWidget):
     def open_path(self):
         filename, _ = QFileDialog.getOpenFileName(

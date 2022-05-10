@@ -1,5 +1,8 @@
+import numpy as np
+
+
 class Image:
-    def __init__(self, size: list, canvas: list) -> None:
+    def __init__(self, size: np.ndarray, canvas: np.ndarray) -> None:
         self.size = size
         self.canvas = canvas
 
@@ -10,7 +13,7 @@ class Image:
         # y * width + x
         return self.canvas[y * self.size[0] + x]
 
-    def set_pixel(self, x: int, y: int, rgb: list) -> None:
+    def set_pixel(self, x: int, y: int, rgb: np.ndarray) -> None:
         """
         Sets the RGB values of a pixel.
         """
@@ -28,11 +31,14 @@ class Image:
         """
         return self.size[1]
 
-    def get_size(self) -> list:
+    def get_size(self) -> np.ndarray:
         """
         Returns the size of the image.
         """
         return self.size
+
+    def count_pixels(self) -> int:
+        return self.size[0] * self.size[1]
 
     def get_canvas(self) -> list:
         """
@@ -51,16 +57,4 @@ class Image:
             for j in range(y - level, y + level + 1):
                 if i >= 0 and i < w and j >= 0 and j < h:
                     neighbours.append(self.get_pixel(i, j))
-        return neighbours
-
-    def get_histogram(self) -> dict:
-        """
-        Returns the histogram of the image.
-        """
-        histogram = {}
-        for pixel in self.canvas:
-            if pixel not in histogram:
-                histogram[pixel] = 1
-            else:
-                histogram[pixel] += 1
-        return histogram
+        return np.array(neighbours)
