@@ -2,18 +2,14 @@ import sys
 from PyQt6.QtWidgets import (
     QApplication,
     QWidget,
-    QPushButton,
     QLabel,
-    QFileDialog,
     QMainWindow,
-    QMdiSubWindow,
 )
 from PyQt6.QtGui import (
     QIcon,
     QPixmap,
     QImage,
     QAction,
-    QColor,
     QFont,
     QGuiApplication,
 )
@@ -22,7 +18,7 @@ from classes.image import Image
 from classes.adapter import Adapter
 from modules.filters import Filters
 from modules.statemanager import StateManager, CanvaState
-from modules.qt_override import QGrid, QObjects, QDialogs
+from modules.qt_override import QGrid, QObjects, QDialogs, QChildWindow
 
 # Override the default QWidget to automatically center the elements
 
