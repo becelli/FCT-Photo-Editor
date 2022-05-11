@@ -161,6 +161,7 @@ class MainWindow(QMainWindow):
             "Salt and Pepper": lambda: f("salt_and_pepper"),
             "Gaussian Blur": lambda: f("blur"),
             "Blur Median": lambda: f("blur_median"),
+            "Border Detection": lambda: f("border_detection"),
         }
 
         for i, (name, filter) in enumerate(filters.items()):
@@ -179,18 +180,16 @@ class MainWindow(QMainWindow):
 
     def toolsMenu(self, toolsMenu):
         commands = {
-            "Histogram": (self.histogram, "Ctrl+H"),
-            "Channels": (self.channels, "Ctrl+C"),
+            "Histogram": (self.show_histogram, "Ctrl+H"),
+            "Channels": (self.show_channels, "Ctrl+C"),
         }
         for name, (func, shortcut) in commands.items():
             m = self.add_submenu(name, func, shortcut)
             toolsMenu.addAction(m)
 
     def apply_filter(self, filter: str) -> Image:
-        # TODO remove temp code!
-        # filters1 = Filters(self.input_image)
-        # img = filters1.grayscale()
-        self.filters = self.filters if self.filters else Filters(self.input_image)
+        if not self.filters:
+            self.filters = Filters(self.input_image)
 
         output = None
         match filter:
@@ -208,12 +207,13 @@ class MainWindow(QMainWindow):
                 output = self.filters.blur_median()
             case "salt_and_pepper":
                 output = self.filters.salt_and_pepper()
+            case "border_detection":
+                output = self.filters.border_detection()
             case _:
                 pass
         if output:
             self.update_output(output)
 
-    # Update the canvas with the new image
     def update_output(self, image: Image):
         self.output_image = image
         self.reload_output_canvas()
