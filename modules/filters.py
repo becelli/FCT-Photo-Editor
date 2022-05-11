@@ -209,3 +209,22 @@ class Filters:
                 )
 
         return Image(size=self.img.get_size(), canvas=pixels)
+
+    def border_detection(self, level: int = 1) -> Image:
+        """
+        Detects borders in an img.
+        """
+        canvas = self.img.get_canvas()
+        w, h = self.img.get_size()
+        meaned_pixels = self.blur(level).get_canvas()
+        pixels = np.zeros((w * h, 3)).astype(np.uint8)
+        for y in range(h):
+            for x in range(w):
+                pixels[y * w + x] = np.array(
+                    [
+                        int(abs(canvas[y * w + x][0] - meaned_pixels[y * w + x][0])),
+                        int(abs(canvas[y * w + x][1] - meaned_pixels[y * w + x][1])),
+                        int(abs(canvas[y * w + x][2] - meaned_pixels[y * w + x][2])),
+                    ]
+                ).astype(np.uint16)
+        return Image(size=self.img.get_size(), canvas=pixels)
