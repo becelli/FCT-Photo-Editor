@@ -1,5 +1,12 @@
-from PyQt6.QtWidgets import QGridLayout, QLabel, QWidget, QFileDialog
-from PyQt6.QtGui import QPixmap, QColor, QImage
+from PyQt6.QtWidgets import (
+    QGridLayout,
+    QLabel,
+    QWidget,
+    QFileDialog,
+    QMainWindow,
+    QPushButton,
+)
+from PyQt6.QtGui import QPixmap, QColor, QImage, QGuiApplication
 from PyQt6.QtCore import Qt
 import matplotlib.pyplot as plt
 
