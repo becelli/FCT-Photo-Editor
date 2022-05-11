@@ -224,35 +224,17 @@ class MainWindow(QMainWindow):
 
     def reload_input_canvas(self):
         self.input_canvas.setPixmap(QPixmap(Adapter.Img2QImg(self.input_image)))
-        self.state.add(CanvaState(inp=self.input_image))
-        self.filters = Filters(self.input_image)
+        # self.state.add(CanvaState(out=self.input_image))
 
     def reload_output_canvas(self):
         self.output_canvas.setPixmap(QPixmap(Adapter.Img2QImg(self.output_image)))
-        self.state.add(CanvaState(out=self.output_image))
+        # self.state.add(CanvaState(out=self.output_image))
 
     # Qt Manipulations
     def create_canvas(self, name: str = "Canvas") -> tuple[QLabel, QLabel]:
-        label = QObjects().label(name)
-        label.setFont(QFont("Monospace", 16))
-        canvas = QObjects().canvas(320, 240)
+        label = QObjects.label(name)
+        canvas = QObjects.canvas(320, 240)
         return label, canvas
-
-    def create_button(
-        self,
-        name="Button",
-        func=None,
-        shortcut=None,
-        tooltip=None,
-    ) -> QPushButton:
-        button = QPushButton(name)
-        if func:
-            button.clicked.connect(func)
-        if shortcut:
-            button.setShortcut(shortcut)
-        if tooltip:
-            button.setToolTip(tooltip)
-        return button
 
     def add_submenu(self, name=None, func=None, shortcut=None, tooltip=None):
         m = QAction(name, self)
@@ -304,7 +286,3 @@ def main():
     window = MainWindow()
     window.show()
     sys.exit(app.exec())
-
-
-if __name__ == "__main__":
-    main()
