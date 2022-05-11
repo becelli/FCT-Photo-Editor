@@ -36,20 +36,18 @@ class Filters:
 
         return Image(size=self.img.get_size(), canvas=pixels)
 
-    def channels_separation(self) -> list[Image, Image, Image]:
+    def get_channel(self, color: str) -> Image:
         """
         Separates the channels of an img.
         """
+        canvas = self.img.get_canvas()
         size = self.img.get_size()
         n = size[0] * size[1]
-        red = np.zeros((n, 3)).astype(np.uint8)
-        green = np.zeros((n, 3)).astype(np.uint8)
-        blue = np.zeros((n, 3)).astype(np.uint8)
-        for i, pixel in enumerate(self.img.get_canvas()):
-            red[i] = [pixel[0], 0, 0]
-            green[i] = [0, pixel[1], 0]
-            blue[i] = [0, 0, pixel[2]]
-        return Image(size, red), Image(size, green), Image(size, blue)
+        pos = 0 if color[0] == "r" else 1 if color == "green" else 2
+        pixels = np.zeros((n, 3)).astype(np.uint8)
+        for i, pixel in enumerate(canvas):
+            pixels[i][pos] = pixel[pos]
+        return Image(size, pixels)
 
     def negative(self) -> Image:
         """
@@ -165,4 +163,49 @@ class Filters:
             x2, y2 = randint(0, w - 1), randint(0, h - 1)
             pixels[y1 * w + x1] = np.array([0, 0, 0]).astype(np.uint8)
             pixels[y2 * w + x2] = np.array([255, 255, 255]).astype(np.uint8)
+        return Image(size=self.img.get_size(), canvas=pixels)
+
+    def equalize(self) -> Image:
+        """
+        Equalizes the intensity of an img.
+        """
+        canvas = self.img.get_canvas()
+        n = self.img.count_pixels()
+        pixels = np.zeros((n, 3)).astype(np.uint8)
+        if not self.isRGB:
+            frequency = np.zeros(256)
+            for pixel in canvas:
+                frequency[pixel[0]] += 1
+            # Cumulative distribution function
+            frequency = 255 * frequency / n  # 255 * freq / (w * h)
+            cum_freq = np.cumsum(frequency)
+
+            for i, p in enumerate(canvas):
+                val = cum_freq[p[0]] - 1
+                pixels[i] = np.array([val, val, val], dtype=np.uint8)
+        else:
+            r_freq, g_freq, b_freq = np.zeros(256), np.zeros(256), np.zeros(256)
+            for pixel in canvas:
+                r_freq[pixel[0]] += 1
+                g_freq[pixel[1]] += 1
+                b_freq[pixel[2]] += 1
+
+            # Cumulative distribution function
+            r_freq = 255 * r_freq / n  # 255 * freq / (w * h)
+            g_freq = 255 * g_freq / n  # 255 * freq / (w * h)
+            b_freq = 255 * b_freq / n  # 255 * freq / (w * h)
+            cum_r_freq = np.cumsum(r_freq)
+            cum_g_freq = np.cumsum(g_freq)
+            cum_b_freq = np.cumsum(b_freq)
+
+            for i, p in enumerate(canvas):
+                pixels[i] = np.array(
+                    [
+                        cum_r_freq[p[0]] - 1,
+                        cum_g_freq[p[1]] - 1,
+                        cum_b_freq[p[2]] - 1,
+                    ],
+                    dtype=np.uint8,
+                )
+
         return Image(size=self.img.get_size(), canvas=pixels)
