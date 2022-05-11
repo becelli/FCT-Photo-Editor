@@ -5,20 +5,27 @@ import matplotlib.pyplot as plt
 
 
 class QGrid(QGridLayout):
+    def __init__(self):
+        super().__init__()
+        self.setSpacing(0)
+        self.setContentsMargins(0, 0, 0, 0)
+
     def addWidget(self, widget, row, column, rowSpan=1, columnSpan=1):
         super().addWidget(widget, row, column, rowSpan, columnSpan)
         self.setAlignment(widget, Qt.AlignmentFlag.AlignCenter)
 
 
 class QObjects:
-    def canvas(self, width: int, height: int) -> QLabel:
+    @staticmethod
+    def canvas(width: int, height: int) -> QLabel:
         img = QLabel()
         image = QImage(width, height, QImage.Format.Format_RGB32)
         image.fill(QColor(0, 0, 0).rgb())
         img.setPixmap(QPixmap(image))
         return img
 
-    def label(self, text: str) -> QLabel:
+    @staticmethod
+    def label(text: str) -> QLabel:
         l = QLabel()
         l.setText(text)
         return l

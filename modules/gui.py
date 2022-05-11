@@ -61,8 +61,6 @@ class MainWindow(QMainWindow):
 
     def main_grid(self):
         grid = QGrid()
-        grid.setSpacing(0)
-        grid.setContentsMargins(0, 0, 0, 0)
 
         # Input canvas (left)
         input_label, self.input_canvas = self.create_canvas("Entrada")
@@ -70,8 +68,8 @@ class MainWindow(QMainWindow):
         grid.addWidget(input_label, 0, 0)
         grid.addWidget(self.input_canvas, 1, 0)
 
-        # Apply changes to the input canvas
-        copy_btn = self.create_button(
+        # Button to apply the changes made on the output canvas
+        copy_btn = QObjects.button(
             name="🠔",
             func=self.apply_output,
             shortcut="CTRL+P",
