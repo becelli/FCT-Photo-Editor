@@ -27,8 +27,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.title = "Digital Image Processing"
-        self.w = 750
-        self.h = 300
+        self.w, self.h = 750, 300
         self.filters = None
         self.input_image: Image = None  # Matrix of the input image
         self.input_canvas: QLabel = QLabel()  # Canvas
@@ -36,19 +35,18 @@ class MainWindow(QMainWindow):
         self.output_canvas: QLabel = QLabel()  # Canvas
         self.initUI()
 
-    def initUI(self) -> None:
+    def set_window_props(self) -> None:
         self.setWindowTitle(self.title)
         self.setFixedSize(self.w, self.h)
-        qtRectangle = self.frameGeometry()
-        centerPoint = QGuiApplication.primaryScreen().availableGeometry().center()
-        qtRectangle.moveCenter(centerPoint)
-        self.move(qtRectangle.topLeft())
+        qt_rectangle = self.frameGeometry()
+        center_point = QGuiApplication.primaryScreen().availableGeometry().center()
+        qt_rectangle.moveCenter(center_point)
+        self.move(qt_rectangle.topLeft())
         self.setWindowIcon(QIcon("assets/icon.png"))
 
-        # State manager
-        self.state = StateManager(max_states=32)
-
-        # Application Layout
+    def initUI(self) -> None:
+        self.set_window_props()
+        self.state = StateManager(max_states=64)
         self.menubar()
         self.main_grid()
 
