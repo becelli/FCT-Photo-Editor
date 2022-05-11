@@ -90,86 +90,66 @@ class MainWindow(QMainWindow):
         self.reload_output_canvas()
 
         grid.setRowStretch(3, 1)
-        widget = QWidget()
-        widget.setLayout(grid)
-        self.setCentralWidget(widget)
+        self.show_grid_on_window(self, grid)
 
-    def histogram(self) -> None:
+    def show_histogram(self) -> None:
         """
         Plot the histogram of an image.
         """
-        # Change figsize
         import matplotlib.pyplot as plt
         import numpy as np
-        from modules.functions import gray_from_rgb
 
-        plt.rcParams["figure.figsize"] = (2, 2)
-        # plt.rcParams["figure.dpi"] = 40
-        image = np.array(self.input_image.get_canvas())
-        red, green, blue = image.T
-        gray = [gray_from_rgb(r, g, b) for r, g, b in zip(red, green, blue)]
-        # Create 256 bins (integers)
-        bins = np.linspace(0, 256, 257)
-
-        # For each bin, count the number of pixels with that value
-        red_counter = {b: np.count_nonzero(red == b) for b in bins}
-        green_counter = {b: np.count_nonzero(green == b) for b in bins}
-        blue_counter = {b: np.count_nonzero(blue == b) for b in bins}
-        gray_counter = {b: np.count_nonzero(gray == b) for b in bins}
-        max_value = max(
-            max(red_counter.values()),
-            max(green_counter.values()),
-            max(blue_counter.values()),
-            max(gray_counter.values()),
-        )
-        # max_value = max(gray_counter.values())
-        # Normalize the counts to [0, 1]. The most frequent value will be 1
-        red_counter = {b: c / max_value for b, c in red_counter.items()}
-        green_counter = {b: c / max_value for b, c in green_counter.items()}
-        blue_counter = {b: c / max_value for b, c in blue_counter.items()}
-        gray_counter = {b: c / max_value for b, c in gray_counter.items()}
-        plt.subplot(2, 2, 1)
-        plt.bar(bins, red_counter.values(), color="red", width=1)
-
-        plt.ylim(0, 1.05)
-        plt.subplot(2, 2, 2)
-        plt.bar(bins, green_counter.values(), color="green", width=1)
-
-        plt.ylim(0, 1.05)
-        plt.subplot(2, 2, 3)
-        plt.bar(bins, blue_counter.values(), color="blue", width=1)
-        plt.ylim(0, 1.05)
-        plt.subplot(2, 2, 4)
-        plt.bar(bins, gray_counter.values(), color="gray", width=2)
-        plt.ylim(0, 1.05)
+        f = Filters(self.input_image)
+        gray = f.grayscale().get_canvas()
+        # Maximum value of the histogram is 1. 0 is the minimum value
+        hist, bins = np.histogram(gray, bins=256, range=(0, 255))
+        hist = hist / np.max(hist)
+        # Plot the histogram as a bar chart
+        plt.bar(bins[:-1], hist, width=2, color="black")
+        plt.title("Histograma")
         plt.show()
 
-    def channels(self) -> None:
-        """
-        Plot the channels of an image.
-        """
+    def _add_channels_to_grid(self, grid: QGrid) -> None:
         f = Filters(self.input_image)
-        images = f.channels_separation()
-        # Create a subwindow
-        subwindow = QMdiSubWindow()
-        subwindow.setWindowTitle("Canvas")
-        subwindow.setWidget(QWidget())
+        colors = ["red", "green", "blue"]
+        for i, color in enumerate(colors):
+            l, c = self.create_canvas(colors[i])
+            l.setStyleSheet(f"background-color: {color};")
+            l.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            l.setFixedWidth(int(self.w * 1.3 / 3))
+            c.setPixmap(QPixmap.fromImage(Adapter.Img2QImg(f.get_channel(color))))
+            c.setContentsMargins(0, 0, 0, 0)
+            grid.addWidget(l, 0, i)
+            grid.addWidget(c, 1, i)
 
-        subwindow.show()
+    def show_channels(self) -> None:
+        """
+        Show the channel of an image.
+        """
+        grid = QGrid()
+        self._add_channels_to_grid(grid)
+        grid.setRowStretch(2, 1)
+        w, h = int(self.w * 1.25), int(self.h * 0.8)
+        child = QChildWindow(self, "Channels", w, h)
+        self.show_grid_on_window(child, grid)
+
+    def show_grid_on_window(self, window: QMainWindow, grid: QGrid) -> None:
+        """
+        Set the layout of a window.
+        """
+        widget = QWidget()
+        widget.setLayout(grid)
+        window.setCentralWidget(widget)
+        window.show()
 
     def fileMenu(self, fileMenu):
-        openAct = self.add_submenu(
-            "Open", self.open_image, "Ctrl+O", "Open an existing file"
+        options = (
+            ("Open", self.open_image, "CTRL+O", "Open an image"),
+            ("Save", self.save_image, "CTRL+S", "Save the image"),
+            ("Exit", self.close, "CTRL+Q", "Exit the application"),
         )
-        saveAct = self.add_submenu(
-            "Save", self.save_image, "Ctrl+S", "Save the document"
-        )
-        exitAct = self.add_submenu("Exit", self.close, "Ctrl+Q", "Exit the application")
-        # Add actions to the menus
-        fileMenu.addAction(openAct)
-        fileMenu.addAction(saveAct)
-        fileMenu.addSeparator()
-        fileMenu.addAction(exitAct)
+        for (name, fn, hot, tip) in options:
+            fileMenu.addAction(self.add_submenu(name, fn, hot, tip))
 
     def filtersMenu(self, filtersMenu):
         f = lambda filter: self.apply_filter(filter)
