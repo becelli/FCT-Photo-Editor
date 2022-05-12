@@ -16,15 +16,14 @@ class MainWindow(QMainWindow):
         self.title = "Digital Image Processing"
         self.w, self.h = 750, 300
         self.filters = None
-        self.input_image: Image = None  # Matrix of the input image
         self.input_canvas: QLabel = QLabel()  # Canvas
-        self.output_image: Image = None  # Matrix of the output image
         self.output_canvas: QLabel = QLabel()  # Canvas
         self.initUI()
 
     def set_window_props(self) -> None:
         self.setWindowTitle(self.title)
-        self.setFixedSize(self.w, self.h)
+        # self.setFixedSize(self.w, self.h)
+        self.setGeometry(0, 0, self.w, self.h)
         qt_rectangle = self.frameGeometry()
         center_point = QGuiApplication.primaryScreen().availableGeometry().center()
         qt_rectangle.moveCenter(center_point)
@@ -51,13 +50,12 @@ class MainWindow(QMainWindow):
 
         # Input canvas (left)
         input_label, self.input_canvas = self.create_canvas("Entrada")
-        self.input_image = Adapter.QImg2Img(self.input_canvas.pixmap().toImage())
         grid.addWidget(input_label, 0, 0)
         grid.addWidget(self.input_canvas, 1, 0)
 
         # Button to apply the changes made on the output canvas
         copy_btn = QObjects.button(
-            name="🠔",
+            name="<",
             func=self.apply_output,
             shortcut="CTRL+P",
             tooltip="Aplicar Alterações",
@@ -68,13 +66,12 @@ class MainWindow(QMainWindow):
 
         # Output canvas (right)
         output_label, self.output_canvas = self.create_canvas("Saída")
-        self.output_image = Adapter.QImg2Img(self.output_canvas.pixmap().toImage())
         grid.addWidget(output_label, 0, 2)
         grid.addWidget(self.output_canvas, 1, 2)
 
         # Initial state
-        self.reload_input_canvas()
-        self.reload_output_canvas()
+        # self.reload_input_canvas()
+        # self.reload_output_canvas()
 
         grid.setRowStretch(3, 1)
         self.show_grid_on_window(self, grid)
@@ -199,23 +196,13 @@ class MainWindow(QMainWindow):
             case _:
                 pass
         if output:
-            self.update_output(output)
-
-    def update_output(self, image: Image):
-        self.output_image = image
-        self.reload_output_canvas()
+            self.update_output_canvas(output)
 
     def apply_output(self):
-        self.input_image = self.output_image
-        self.reload_input_canvas()
+        self.input_canvas.setPixmap(self.output_canvas.pixmap())
 
-    def reload_input_canvas(self):
-        self.input_canvas.setPixmap(QPixmap(Adapter.Img2QImg(self.input_image)))
-        # self.state.add(CanvaState(out=self.input_image))
-
-    def reload_output_canvas(self):
-        self.output_canvas.setPixmap(QPixmap(Adapter.Img2QImg(self.output_image)))
-        # self.state.add(CanvaState(out=self.output_image))
+    def update_output_canvas(self, qpixmap: QPixmap):
+        self.output_canvas.setPixmap(qpixmap)
 
     # Qt Manipulations
     def create_canvas(self, name: str = "Canvas") -> tuple[QLabel, QLabel]:
@@ -238,29 +225,24 @@ class MainWindow(QMainWindow):
         s = self.state.prev()
         if s:
             if s.input:
-                self.input_image = s.input
-                self.reload_input_canvas()
+                self.input_canvas.setPixmap(s.input)
             if s.output:
-                self.output_image = s.output
-                self.reload_output_canvas()
+                self.output_canvas.setPixmap(s.output)
 
     def redo(self):
         s = self.state.next()
         if s:
             if s.input:
-                self.input_image = s.input
-                self.reload_input_canvas()
+                self.input_canvas.setPixmap(s.input)
             if s.output:
-                self.output_image = s.output
-                self.reload_output_canvas()
+                self.output_canvas.setPixmap(s.output)
 
     # File management
     def open_image(self):
         filename = QDialogs().open_path()
         if filename:
-            pixmap = QPixmap(filename).scaled(320, 240)
-            self.input_image = Adapter.QImg2Img(QImage(pixmap))
-            self.reload_input_canvas()
+            pixmap = QPixmap(filename)
+            self.input_canvas.setPixmap(pixmap)
 
     def save_image(self):
         filename = QDialogs().save_path()
