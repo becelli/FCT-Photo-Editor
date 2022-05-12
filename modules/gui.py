@@ -1,21 +1,8 @@
 import sys
-from PyQt6.QtWidgets import (
-    QApplication,
-    QWidget,
-    QLabel,
-    QMainWindow,
-)
-from PyQt6.QtGui import (
-    QIcon,
-    QPixmap,
-    QImage,
-    QAction,
-    QFont,
-    QGuiApplication,
-)
-from PyQt6.QtCore import Qt
+from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QMainWindow, QAction
+from PyQt5.QtGui import QIcon, QPixmap, QImage, QFont, QGuiApplication, qRgb
+from PyQt5.QtCore import Qt
 from classes.image import Image
-from classes.adapter import Adapter
 from modules.filters import Filters
 from modules.statemanager import StateManager, CanvaState
 from modules.qt_override import QGrid, QObjects, QDialogs, QChildWindow

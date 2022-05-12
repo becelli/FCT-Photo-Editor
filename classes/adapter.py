@@ -1,4 +1,4 @@
-from PyQt6.QtGui import QImage, QColor
+from PyQt5.QtGui import QImage, QColor
 from classes.image import Image
 import numpy as np
 
