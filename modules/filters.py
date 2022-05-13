@@ -18,7 +18,7 @@ class Filters:
         """
 
         if self.img.isGrayscale():
-            return None
+            return self.img
 
         w, h = self.img.width(), self.img.height()
         image = QImage(w, h, QImage.Format_RGB888)
@@ -217,7 +217,7 @@ class Filters:
         # All n = (a * b) pixels around, including the (x, y) pixel.
         return area
 
-    def blur(self, n=3) -> QImage:
+    def blur(self, n: int = 3) -> QImage:
         """
         Blurs an img.
         """
@@ -225,10 +225,11 @@ class Filters:
         pixmap = self.apply_mask(mask)
         return pixmap
 
-    def blur_median(self) -> QImage:
+    def blur_median(self, n: int = 3) -> QImage:
         """
         Blurs an img.
         """
+        # TODO NOT IMPLEMENTED
         mask = np.array([[0, 1, 0], [1, 1, 1], [0, 1, 0]]) / np.float64(5)
 
         pixmap = self.apply_mask(mask)
@@ -249,4 +250,35 @@ class Filters:
                 g = min(255, max(0, f(p[1])))
                 b = min(255, max(0, f(p[2])))
                 image.setPixel(x, y, qRgb(r, g, b))
+        return image
+
+    def sobel(self) -> QImage:
+        """
+        Finds edges in an img.
+        """
+        ver = np.array([[-1, -2, -1], [0, 0, 0], [1, 2, 1]]) / np.float64(4)
+        hor = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]) / np.float64(4)
+        if self.img.isGrayscale():
+            self.img = self.grayscale()
+        vertical = self.apply_mask(ver)
+        horizontal = self.apply_mask(hor)
+        w, h = vertical.width(), vertical.height()
+        image = QImage(w, h, QImage.Format_RGB888)
+        for x in range(w):
+            for y in range(h):
+                vert = qRed(vertical.pixel(x, y))
+                horiz = qRed(horizontal.pixel(x, y))
+                c = min(255, vert + horiz)
+                image.setPixel(x, y, qRgb(c, c, c))
+        return image
+
+    def laplace(self) -> QImage:
+        """
+        Finds edges in an img.
+        """
+        # mask = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]])
+        mask = np.array([[-1, -1, -1], [-1, 9, -1], [-1, -1, -1]])
+        if self.img.isGrayscale():
+            self.img = self.grayscale()
+        image = self.apply_mask(mask)
         return image

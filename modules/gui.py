@@ -134,24 +134,6 @@ class MainWindow(QMainWindow):
         for (name, fn, hot, tip) in options:
             fileMenu.addAction(self.add_submenu(name, fn, hot, tip))
 
-    def filtersMenu(self, filtersMenu):
-        f = lambda filter: self.apply_filter(filter)
-        filters = {
-            "Grayscale": lambda: f("grayscale"),
-            "Equalize": lambda: f("equalize"),
-            "Negative": lambda: f("negative"),
-            "Binarize": lambda: f("binarize"),
-            "Salt and Pepper": lambda: f("salt_and_pepper"),
-            "Gaussian Blur": lambda: f("blur"),
-            "Blur Median": lambda: f("blur_median"),
-            "Dynamic Compression": lambda: f("dynamic_compression"),
-        }
-
-        for i, (name, filter) in enumerate(filters.items()):
-            shortcut = f"F{i+1}" if i < 12 else f"Ctrl+{i+1}"
-            tooltip = f"Apply {name} filter"
-            filtersMenu.addAction(self.add_submenu(name, filter, shortcut, tooltip))
-
     def editMenu(self, editMenu):
         commands = {
             "Undo": (self.undo, "Ctrl+Z"),
@@ -169,6 +151,26 @@ class MainWindow(QMainWindow):
         for name, (func, shortcut) in commands.items():
             m = self.add_submenu(name, func, shortcut)
             toolsMenu.addAction(m)
+
+    def filtersMenu(self, filtersMenu):
+        f = lambda filter: self.apply_filter(filter)
+        filters = {
+            "Grayscale": lambda: f("grayscale"),
+            "Equalize": lambda: f("equalize"),
+            "Negative": lambda: f("negative"),
+            "Binarize": lambda: f("binarize"),
+            "Salt and Pepper": lambda: f("salt_and_pepper"),
+            "Gaussian Blur": lambda: f("blur"),
+            "Blur Median": lambda: f("blur_median"),
+            "Dynamic Compression": lambda: f("dynamic_compression"),
+            "Sobel": lambda: f("sobel"),
+            "Laplacian": lambda: f("laplacian"),
+        }
+
+        for i, (name, filter) in enumerate(filters.items()):
+            shortcut = f"F{i+1}" if i < 12 else f"Ctrl+{i+1}"
+            tooltip = f"Apply {name} filter"
+            filtersMenu.addAction(self.add_submenu(name, filter, shortcut, tooltip))
 
     def apply_filter(self, filter: str) -> None:
         # Create image from QPixmap
@@ -191,6 +193,10 @@ class MainWindow(QMainWindow):
                 output = f.salt_and_pepper()
             case "dynamic_compression":
                 output = f.dynamic_compression()
+            case "sobel":
+                output = f.sobel()
+            case "laplacian":
+                output = f.laplace()
             case _:
                 pass
         if output:
