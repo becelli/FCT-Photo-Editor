@@ -278,3 +278,29 @@ class Filters:
             self.img = self.grayscale()
         image = self.apply_mask(mask)
         return image
+
+    def limiarization(self, t: int = 127) -> QImage:
+        """
+        'Binarizes' an img at certain threshold.
+        """
+        image = QImage(self.img)
+        w, h = image.width(), image.height()
+        if self.img.isGrayscale():
+            for x in range(w):
+                for y in range(h):
+                    p = qRed(image.pixel(x, y))
+                    if p[0] > t:
+                        image.setPixel(x, y, qRgb(0, 0, 0))
+                    else:
+                        image.setPixel(x, y, qRgb(255, 255, 255))
+        else:
+            for x in range(w):
+                for y in range(h):
+                    p = QColor(image.pixel(x, y)).getRgb()
+                    r, g, b = p[0], p[1], p[2]
+                    r = 255 if r > t else 0
+                    g = 255 if g > t else 0
+                    b = 255 if b > t else 0
+                    image.setPixel(x, y, qRgb(r, g, b))
+
+        return image
