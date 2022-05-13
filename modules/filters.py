@@ -1,196 +1,153 @@
-from classes.image import Image
+# Import QImage and QPixmap
+from PyQt5.QtGui import QImage, QPixmap, QColor, qRgb, qRed, qGreen, qBlue
 from ctypes import *
 import numpy as np
+import time
 from modules.functions import gray_from_rgb
+
+# import buffer
 
 
 class Filters:
-    def __init__(self, img: Image):
-        self.img: Image = img
-        self.isRGB = self._verify_is_RGB()
+    def __init__(self, img: QImage):
+        self.img: QImage = img
 
-    def _verify_is_RGB(self) -> bool:
-        for pixel in self.img.get_canvas():
-            if pixel[0] != pixel[1] or pixel[0] != pixel[2]:
-                return True
-        return False
-
-    def grayscale(self) -> Image:
+    def grayscale(self) -> QImage:
         """
         Converts an img to a grayscale version.
         """
-        if not self.isRGB:  # Verify if the img is already grayscale
-            return self.img
 
-        # Average of the RGB values
+        if self.img.isGrayscale():
+            return None
 
-        def new_pixel(p):
-            c = gray_from_rgb(p[0], p[1], p[2])
-            return [c, c, c]
+        w, h = self.img.width(), self.img.height()
+        image = QImage(w, h, QImage.Format_RGB888)
+        for x in range(w):
+            for y in range(h):
+                c = QColor(self.img.pixel(x, y)).getRgb()[:3]
+                color = gray_from_rgb(*c)
+                image.setPixel(x, y, qRgb(color, color, color))
+        return image
 
-        size = self.img.get_size()
-        pixels = np.zeros((size[0] * size[1], 3)).astype(np.uint8)
-        canvas = self.img.get_canvas()
-        for i, pixel in enumerate(canvas):
-            pixels[i] = new_pixel(pixel)
-
-        return Image(size=self.img.get_size(), canvas=pixels)
-
-    def get_channel(self, color: str) -> Image:
+    def get_channel(self, color: str) -> QImage:
         """
         Separates the channels of an img.
         """
-        canvas = self.img.get_canvas()
-        size = self.img.get_size()
-        n = size[0] * size[1]
-        pos = 0 if color[0] == "r" else 1 if color == "green" else 2
-        pixels = np.zeros((n, 3)).astype(np.uint8)
-        for i, pixel in enumerate(canvas):
-            pixels[i][pos] = pixel[pos]
-        return Image(size, pixels)
 
-    def negative(self) -> Image:
+        w, h = self.img.width(), self.img.height()
+        image = QImage(w, h, QImage.Format_RGB888)
+        f = None
+        match color:
+            case "red":
+                f = lambda pixel: qRgb(qRed(pixel), 0, 0)
+            case "green":
+                f = lambda pixel: qRgb(0, qGreen(pixel), 0)
+            case "blue":
+                f = lambda pixel: qRgb(0, 0, qBlue(pixel))
+
+        for x in range(w):
+            for y in range(h):
+                image.setPixel(x, y, f(self.img.pixel(x, y)))
+        return image
+
+    def negative(self) -> QImage:
         """
         Inverts the colors of an img.
         """
-        canvas = self.img.get_canvas()
-        pixels = np.zeros((self.img.count_pixels(), 3)).astype(np.uint8)
-        if not self.isRGB:
-            for i, pixel in enumerate(canvas):
-                neg = 255 - pixel[0]
-                pixels[i] = np.array([neg, neg, neg]).astype(np.uint8)
+        w, h = self.img.width(), self.img.height()
+        image = QImage(w, h, QImage.Format_RGB888)
+        if self.img.isGrayscale():
+            for x in range(w):
+                for y in range(h):
+                    color = 255 - qRed(self.img.pixel(x, y))
+                    image.setPixel(x, y, qRgb(color, color, color))
         else:
-            for i, pixel in enumerate(canvas):
-                pixels[i] = np.array(
-                    [255 - pixel[0], 255 - pixel[1], 255 - pixel[2]]
-                ).astype(np.uint8)
+            for x in range(w):
+                for y in range(h):
+                    pix = self.img.pixel(x, y)
+                    p = [qRed(pix), qGreen(pix), qBlue(pix)]
+                    image.setPixel(x, y, qRgb(255 - p[0], 255 - p[1], 255 - p[2]))
+        return image
 
-        return Image(size=self.img.get_size(), canvas=pixels)
-
-    def binarize(self, threshold: int = 128) -> Image:
+    def binarize(self, threshold: int = 127) -> QImage:
         """
         Binarizes the intensity of the pixels.
-        For Grayscale images, it's known as a real B&W.
-        For RGB images, it will binarize each color channel.
+        For Grayscale QImages, it's known as a real B&W.
+        For RGB Qimages, it will binarize each color channel.
         """
-        canvas = self.img.get_canvas()
-        pixels = np.zeros((self.img.count_pixels(), 3)).astype(np.uint8)
+
         # Grayscale
+        w, h = self.img.width(), self.img.height()
+        image = QImage(w, h, QImage.Format_RGB888)
         f = None
-        if not self.isRGB:
-            f = lambda pixel: (255, 255, 255) if pixel[0] >= threshold else (0, 0, 0)
-        else:  # RGB
-            f = lambda pixel: (
-                255 if pixel[0] >= threshold else 0,
-                255 if pixel[1] >= threshold else 0,
-                255 if pixel[2] >= threshold else 0,
+        if self.img.isGrayscale():
+            f = (
+                lambda pixel: qRgb(255, 255, 255)
+                if pixel[0] > threshold
+                else qRgb(0, 0, 0)
             )
-        for i, pixel in enumerate(canvas):
-            pixels[i] = f(pixel)
-        return Image(size=self.img.get_size(), canvas=pixels)
-
-    def blur(self, level: int = 1) -> Image:
-        """
-        Blurs an img.
-        """
-        pixels = np.zeros((self.img.count_pixels(), 3)).astype(np.uint8)
-        w, h = self.img.get_size()
-
-        neighbours = []
-        if not self.isRGB:
-            mean = 0
-            for y in range(h):
-                for x in range(w):
-                    neighbours = self.img.get_pixel_area(x, y, level)
-                    mean = int(sum(pixel[0] for pixel in neighbours) / len(neighbours))
-                    pixels[y * w + x] = (mean, mean, mean)
         else:
-            r, g, b = 0, 0, 0
+            f = lambda pixel: qRgb(
+                255 if pixel[0] > threshold else 0,
+                255 if pixel[1] > threshold else 0,
+                255 if pixel[2] > threshold else 0,
+            )
+
+        for x in range(w):
             for y in range(h):
-                for x in range(w):
-                    r, g, b = 0, 0, 0
-                    neighbours = self.img.get_pixel_area(x, y, level)
-                    for pixel in neighbours:
-                        r += pixel[0]
-                        g += pixel[1]
-                        b += pixel[2]
+                pixel = QColor(self.img.pixel(x, y)).getRgb()
+                image.setPixel(x, y, f(pixel))
+        return image
 
-                    l = len(neighbours)
-                    r = int(r / l)
-                    g = int(g / l)
-                    b = int(b / l)
-                    pixels[y * w + x] = np.array([r, g, b]).astype(np.uint8)
-
-        return Image(size=self.img.get_size(), canvas=pixels)
-
-    def blur_median(self, level: int = 2) -> Image:
-        """
-        Blurs an img.
-        """
-        pixels = np.zeros((self.img.count_pixels(), 3)).astype(np.uint8)
-        w, h = self.img.get_size()
-        if not self.isRGB:
-            mean = 0
-            for y in range(h):
-                for x in range(w):
-                    neighbours = self.img.get_pixel_area(x, y, level)
-                    neighbours = np.sort(neighbours)
-                    mean = neighbours[len(neighbours) // 2][0]
-                    pixels[y * w + x] = np.array([mean, mean, mean]).astype(np.uint8)
-
-        else:
-            for y in range(h):
-                for x in range(w):
-                    neighbours: list[np.ndarray] = self.img.get_pixel_area(x, y, level)
-                    neighbours = np.sort(neighbours, axis=0)
-                    pixels[y * w + x] = np.array(
-                        neighbours[len(neighbours) // 2]
-                    ).astype(np.uint8)
-        return Image(size=self.img.get_size(), canvas=pixels)
-
-    def salt_and_pepper(self, amount: float = 1) -> Image:
+    def salt_and_pepper(self, amount: float = 1) -> QImage:
         """
         Adds salt and pepper noise to an img.
         """
         from random import randint
 
-        w, h = self.img.get_size()
-        pixels = self.img.get_canvas().copy()
-        perc = int((amount / 100) * self.img.count_pixels())
+        w, h = self.img.width(), self.img.height()
+        image = self.img.copy()
+        perc = int((amount / 100) * w * h)
 
         for _ in range(perc // 2):
             x1, y1 = randint(0, w - 1), randint(0, h - 1)
             x2, y2 = randint(0, w - 1), randint(0, h - 1)
-            pixels[y1 * w + x1] = np.array([0, 0, 0]).astype(np.uint8)
-            pixels[y2 * w + x2] = np.array([255, 255, 255]).astype(np.uint8)
-        return Image(size=self.img.get_size(), canvas=pixels)
+            image.setPixel(x1, y1, qRgb(0, 0, 0))
+            image.setPixel(x2, y2, qRgb(255, 255, 255))
+        return image
 
-    def equalize(self) -> Image:
+    def equalize(self) -> QImage:
         """
         Equalizes the intensity of an img.
         """
-        canvas = self.img.get_canvas()
-        n = self.img.count_pixels()
-        pixels = np.zeros((n, 3)).astype(np.uint8)
-        if not self.isRGB:
+        w, h = self.img.width(), self.img.height()
+        n = w * h
+        image = QImage(w, h, QImage.Format_RGB888)
+        # Get all self.img pixels
+        if self.img.isGrayscale():
             frequency = np.zeros(256)
-            for pixel in canvas:
-                frequency[pixel[0]] += 1
+            for x in range(w):
+                for y in range(h):
+                    frequency[QColor(self.img.pixel(x, y)).getRgb()[0]] += 1
             # Cumulative distribution function
             frequency = 255 * frequency / n  # 255 * freq / (w * h)
             cum_freq = np.cumsum(frequency)
 
-            for i, p in enumerate(canvas):
-                val = cum_freq[p[0]] - 1
-                pixels[i] = np.array([val, val, val], dtype=np.uint8)
+            # for i, p in enumerate(canvas):
+            for x in range(w):
+                for y in range(h):
+                    p = QColor(self.img.pixel(x, y)).getRgb()
+                    val = int(cum_freq[p[0]] - 1)
+                    image.setPixel(x, y, qRgb(val, val, val))
         else:
             r_freq, g_freq, b_freq = np.zeros(256), np.zeros(256), np.zeros(256)
-            for pixel in canvas:
-                r_freq[pixel[0]] += 1
-                g_freq[pixel[1]] += 1
-                b_freq[pixel[2]] += 1
+            for x in range(w):
+                for y in range(h):
+                    pixel = QColor(self.img.pixel(x, y)).getRgb()
+                    r_freq[pixel[0]] += 1
+                    g_freq[pixel[1]] += 1
+                    b_freq[pixel[2]] += 1
 
-            # Cumulative distribution function
             r_freq = 255 * r_freq / n  # 255 * freq / (w * h)
             g_freq = 255 * g_freq / n  # 255 * freq / (w * h)
             b_freq = 255 * b_freq / n  # 255 * freq / (w * h)
@@ -198,33 +155,81 @@ class Filters:
             cum_g_freq = np.cumsum(g_freq)
             cum_b_freq = np.cumsum(b_freq)
 
-            for i, p in enumerate(canvas):
-                pixels[i] = np.array(
-                    [
-                        cum_r_freq[p[0]] - 1,
-                        cum_g_freq[p[1]] - 1,
-                        cum_b_freq[p[2]] - 1,
-                    ],
-                    dtype=np.uint8,
-                )
-
-        return Image(size=self.img.get_size(), canvas=pixels)
-
-    def border_detection(self, level: int = 1) -> Image:
-        """
-        Detects borders in an img.
-        """
-        canvas = self.img.get_canvas()
-        w, h = self.img.get_size()
-        meaned_pixels = self.blur(level).get_canvas()
-        pixels = np.zeros((w * h, 3)).astype(np.uint8)
-        for y in range(h):
             for x in range(w):
-                pixels[y * w + x] = np.array(
-                    [
-                        int(abs(canvas[y * w + x][0] - meaned_pixels[y * w + x][0])),
-                        int(abs(canvas[y * w + x][1] - meaned_pixels[y * w + x][1])),
-                        int(abs(canvas[y * w + x][2] - meaned_pixels[y * w + x][2])),
-                    ]
-                ).astype(np.uint16)
-        return Image(size=self.img.get_size(), canvas=pixels)
+                for y in range(h):
+                    p = QColor(self.img.pixel(x, y)).getRgb()
+                    r = int(cum_r_freq[p[0]] - 1)
+                    g = int(cum_g_freq[p[1]] - 1)
+                    b = int(cum_b_freq[p[2]] - 1)
+                    image.setPixel(x, y, qRgb(r, g, b))
+
+        return image
+
+    def apply_mask(
+        self,
+        mask: np.ndarray,
+    ) -> QImage:
+        """
+        Applies a mask to an img.
+        """
+        a, b = mask.shape
+        pa, pb = a // 2, b // 2
+        w, h = self.img.width() - a + 1, self.img.height() - b + 1
+        image = QImage(w, h, QImage.Format_RGB888)
+        if self.img.isGrayscale():
+            for x in range(w):
+                for y in range(h):
+                    area = self.get_pixel_area(x + pa, y + pb, (a, b))
+                    new = 0.0
+                    for i in range(a):
+                        for j in range(b):
+                            new += area[i * 3 + j][0] * mask[i][j]
+                    new = int(new)
+                    image.setPixel(x, y, qRgb(new, new, new))
+        else:
+            for x in range(w):
+                for y in range(h):
+                    new = [0, 0, 0]
+                    area = self.get_pixel_area(x + pb, y + pb, (a, b))
+                    for i in range(a):
+                        for j in range(b):
+                            for k in range(3):
+                                new[k] += area[i * 3 + j][k] * mask[i][j]
+                    image.setPixel(x, y, qRgb(int(new[0]), int(new[1]), int(new[2])))
+        return image
+
+    def get_pixel_area(self, x, y, size) -> np.ndarray:
+        """
+        Returns the area of a pixel.
+        """
+        # Pixels to left/right and top/bottom.
+        a, b = size[0] // 2, size[1] // 2
+        # Area around the pixel.
+        area = np.zeros((size[0] * size[1], 3))
+
+        # Running around the (x, y) pixel.
+
+        it = 0
+        for i in range(x - a, x + a + 1):
+            for j in range(y - b, y + b + 1):
+                area[it] = QColor(self.img.pixel(i, j)).getRgb()[:3]
+                it += 1
+        # All n = (a * b) pixels around, including the (x, y) pixel.
+        return area
+
+    def blur(self, n=3) -> QImage:
+        """
+        Blurs an img.
+        """
+        mask = np.ones((n, n)) / np.float64(n * n)  # 1/9 mask
+        pixmap = self.apply_mask(mask)
+        return pixmap
+
+    def blur_median(self) -> QImage:
+        """
+        Blurs an img.
+        """
+        mask = np.array([[0, 1, 0], [1, 1, 1], [0, 1, 0]]) / np.float64(5)
+
+        pixmap = self.apply_mask(mask)
+        return pixmap

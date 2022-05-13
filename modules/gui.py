@@ -1,8 +1,7 @@
 import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QMainWindow, QAction
-from PyQt5.QtGui import QIcon, QPixmap, QImage, QFont, QGuiApplication, qRgb
+from PyQt5.QtGui import QIcon, QPixmap, QImage, QFont, QGuiApplication
 from PyQt5.QtCore import Qt
-from classes.image import Image
 from modules.filters import Filters
 from modules.statemanager import StateManager, CanvaState
 from modules.qt_override import QGrid, QObjects, QDialogs, QChildWindow
@@ -15,7 +14,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.title = "Digital Image Processing"
         self.w, self.h = 750, 300
-        self.filters = None
+        f = None
         self.input_canvas: QLabel = QLabel()  # Canvas
         self.output_canvas: QLabel = QLabel()  # Canvas
         self.initUI()
@@ -94,14 +93,14 @@ class MainWindow(QMainWindow):
         plt.show()
 
     def _add_channels_to_grid(self, grid: QGrid) -> None:
-        f = Filters(self.input_image)
+        f = Filters(self.input_canvas.pixmap().toImage())
         colors = ["red", "green", "blue"]
         for i, color in enumerate(colors):
-            l, c = self.create_canvas(colors[i])
+            l, c = self.create_canvas(colors[i], 320, 240)
             l.setStyleSheet(f"background-color: {color};")
             l.setAlignment(Qt.AlignmentFlag.AlignCenter)
             l.setFixedWidth(int(self.w * 1.3 / 3))
-            c.setPixmap(QPixmap.fromImage(Adapter.Img2QImg(f.get_channel(color))))
+            c.setPixmap(f.get_channel(color))
             c.setContentsMargins(0, 0, 0, 0)
             grid.addWidget(l, 0, i)
             grid.addWidget(c, 1, i)
@@ -171,28 +170,27 @@ class MainWindow(QMainWindow):
             m = self.add_submenu(name, func, shortcut)
             toolsMenu.addAction(m)
 
-    def apply_filter(self, filter: str) -> Image:
-        if not self.filters:
-            self.filters = Filters(self.input_image)
-
+    def apply_filter(self, filter: str) -> None:
+        # Create image from QPixmap
+        f = Filters(QImage(self.input_canvas.pixmap()))
         output = None
         match filter:
             case "grayscale":
-                output = self.filters.grayscale()
+                output = f.grayscale()
             case "equalize":
-                output = self.filters.equalize()
+                output = f.equalize()
             case "negative":
-                output = self.filters.negative()
+                output = f.negative()
             case "binarize":
-                output = self.filters.binarize()
+                output = f.binarize()
             case "blur":
-                output = self.filters.blur()
+                output = f.blur()
             case "blur_median":
-                output = self.filters.blur_median()
+                output = f.blur_median()
             case "salt_and_pepper":
-                output = self.filters.salt_and_pepper()
+                output = f.salt_and_pepper()
             case "border_detection":
-                output = self.filters.border_detection()
+                output = f.border_detection()
             case _:
                 pass
         if output:
@@ -201,13 +199,18 @@ class MainWindow(QMainWindow):
     def apply_output(self):
         self.input_canvas.setPixmap(self.output_canvas.pixmap())
 
-    def update_output_canvas(self, qpixmap: QPixmap):
-        self.output_canvas.setPixmap(qpixmap)
+    def update_output_canvas(self, qimage: QImage):
+        self.output_canvas.setPixmap(QPixmap.fromImage(qimage))
 
     # Qt Manipulations
-    def create_canvas(self, name: str = "Canvas") -> tuple[QLabel, QLabel]:
+    def create_canvas(
+        self, name: str = "Canvas", xscale: int = 0, yscale: int = 0
+    ) -> tuple[QLabel, QLabel]:
         label = QObjects.label(name)
         canvas = QObjects.canvas(320, 240)
+        if xscale != 0 and yscale != 0:
+            canvas.setScaledContents(True)
+            canvas.setFixedSize(xscale, yscale)
         return label, canvas
 
     def add_submenu(self, name=None, func=None, shortcut=None, tooltip=None):
@@ -241,7 +244,7 @@ class MainWindow(QMainWindow):
     def open_image(self):
         filename = QDialogs().open_path()
         if filename:
-            pixmap = QPixmap(filename)
+            pixmap = QPixmap(filename).scaled(320, 240)
             self.input_canvas.setPixmap(pixmap)
 
     def save_image(self):

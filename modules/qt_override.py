@@ -27,8 +27,8 @@ class QObjects:
     def canvas(width: int, height: int) -> QLabel:
         img = QLabel()
         image = QImage(width, height, QImage.Format.Format_RGB32)
-        image.fill(QColor(0, 0, 0).rgb())
-        img.setPixmap(QPixmap(image))
+        # image.fill(QColor(0, 0, 0).rgb())
+        img.setPixmap(QPixmap.fromImage(image))
         return img
 
     @staticmethod
