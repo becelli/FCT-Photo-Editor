@@ -144,7 +144,7 @@ class MainWindow(QMainWindow):
             "Salt and Pepper": lambda: f("salt_and_pepper"),
             "Gaussian Blur": lambda: f("blur"),
             "Blur Median": lambda: f("blur_median"),
-            "Border Detection": lambda: f("border_detection"),
+            "Dynamic Compression": lambda: f("dynamic_compression"),
         }
 
         for i, (name, filter) in enumerate(filters.items()):
@@ -189,8 +189,8 @@ class MainWindow(QMainWindow):
                 output = f.blur_median()
             case "salt_and_pepper":
                 output = f.salt_and_pepper()
-            case "border_detection":
-                output = f.border_detection()
+            case "dynamic_compression":
+                output = f.dynamic_compression()
             case _:
                 pass
         if output:

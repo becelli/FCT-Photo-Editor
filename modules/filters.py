@@ -233,3 +233,20 @@ class Filters:
 
         pixmap = self.apply_mask(mask)
         return pixmap
+
+    def dynamic_compression(self, c: float = 1, gama: float = 1) -> QImage:
+        """
+        Blurs an img.
+        """
+        image = QImage(self.img)
+        w, h = image.width(), image.height()
+        c = 1
+        f = lambda p: int(c * (p**gama))
+        for x in range(w):
+            for y in range(h):
+                p = QColor(image.pixel(x, y)).getRgb()
+                r = min(255, max(0, f(p[0])))
+                g = min(255, max(0, f(p[1])))
+                b = min(255, max(0, f(p[2])))
+                image.setPixel(x, y, qRgb(r, g, b))
+        return image
