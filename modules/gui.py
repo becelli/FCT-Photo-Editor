@@ -1,8 +1,17 @@
 import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QMainWindow, QAction
-from PyQt5.QtGui import QIcon, QPixmap, QImage, QFont, QGuiApplication
+from PyQt5.QtGui import (
+    QIcon,
+    QPixmap,
+    QImage,
+    QFont,
+    QGuiApplication,
+    QMouseEvent,
+    QColor,
+)
 from PyQt5.QtCore import Qt
 from modules.filters import Filters
+from modules.functions import gray_from_rgb
 from modules.statemanager import StateManager, CanvaState
 from modules.qt_override import QGrid, QObjects, QDialogs, QChildWindow
 
@@ -13,7 +22,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.title = "Digital Image Processing"
-        self.w, self.h = 750, 300
+        self.w, self.h = 750, 330
         f = None
         self.input_canvas: QLabel = QLabel()  # Canvas
         self.output_canvas: QLabel = QLabel()  # Canvas
@@ -49,6 +58,8 @@ class MainWindow(QMainWindow):
 
         # Input canvas (left)
         input_label, self.input_canvas = self.create_canvas("Entrada")
+        self.input_canvas.setMouseTracking(True)
+        self.input_canvas.mouseMoveEvent = self.display_pixel_info
         grid.addWidget(input_label, 0, 0)
         grid.addWidget(self.input_canvas, 1, 0)
 
@@ -68,11 +79,25 @@ class MainWindow(QMainWindow):
         grid.addWidget(output_label, 0, 2)
         grid.addWidget(self.output_canvas, 1, 2)
 
+        self.pixel_color_label = QLabel()
+        self.pixel_color_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.pixel_color_label.setText(f"(0, 0)")
+        self.pixel_color_label.setStyleSheet(
+            "background-color: black;\
+            color: white; \
+            border: 1px solid transparent; \
+            border-radius: 10px;"
+        )
+        self.pixel_color_label.setFixedSize(120, 60)
+
+        grid.addWidget(self.pixel_color_label, 2, 1)
+
         # Initial state
         # self.reload_input_canvas()
         # self.reload_output_canvas()
 
         grid.setRowStretch(3, 1)
+
         self.show_grid_on_window(self, grid)
 
     def show_histogram(self) -> None:
@@ -208,11 +233,32 @@ class MainWindow(QMainWindow):
     def update_output_canvas(self, qimage: QImage):
         self.output_canvas.setPixmap(QPixmap.fromImage(qimage))
 
+    def display_pixel_info(self, event: QMouseEvent) -> QColor:
+        """
+        Get the color of the pixel under the mouse cursor.
+        """
+        x, y, c = self.pixel_info(event)
+        self.pixel_color_label.setText(f"({x}, {y})")
+        fg = "white" if gray_from_rgb(*c) < 127 else "black"
+        self.pixel_color_label.setStyleSheet(
+            f"background-color: rgb({c[0]}, {c[1]}, {c[2]}); \
+              color: {fg}; \
+              border: 1px solid transparent; \
+              border-radius: 10px;"
+        )
+
+    def pixel_info(self, event: QMouseEvent) -> None:
+        x, y = event.x(), event.y()
+        image = self.input_canvas.pixmap().toImage()
+        color = QColor(image.pixel(x, y)).getRgb()[:3]
+        return x, y, color
+
     # Qt Manipulations
     def create_canvas(
         self, name: str = "Canvas", xscale: int = 0, yscale: int = 0
     ) -> tuple[QLabel, QLabel]:
         label = QObjects.label(name)
+        label.setFont(QFont("Monospace", 16))
         canvas = QObjects.canvas(320, 240)
         if xscale != 0 and yscale != 0:
             canvas.setScaledContents(True)
