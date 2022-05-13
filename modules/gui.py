@@ -65,13 +65,15 @@ class MainWindow(QMainWindow):
 
         # Button to apply the changes made on the output canvas
         copy_btn = QObjects.button(
-            name="<",
+            name="Apply",
             func=self.apply_output,
             shortcut="CTRL+P",
             tooltip="Aplicar Alterações",
         )
-        copy_btn.setFont(QFont("Monospace", 28))
-        copy_btn.setStyleSheet("font-weight: bold;")
+        copy_btn.setFont(QFont("Monospace", 18))
+        copy_btn.setStyleSheet(
+            "font-weight: bold; padding: 15px; border: 3px solid black; border-radius: 5px;"
+        )
         grid.addWidget(copy_btn, 1, 1)
 
         # Output canvas (right)
