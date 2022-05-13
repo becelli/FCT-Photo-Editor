@@ -109,10 +109,11 @@ class MainWindow(QMainWindow):
         import matplotlib.pyplot as plt
         import numpy as np
 
-        f = Filters(self.input_image)
-        gray = f.grayscale().get_canvas()
+        f = Filters(self.input_canvas.pixmap().toImage())
+        gray: QImage = f.grayscale()
+        pixels = gray.bits().asarray(gray.width() * gray.height())
         # Maximum value of the histogram is 1. 0 is the minimum value
-        hist, bins = np.histogram(gray, bins=256, range=(0, 255))
+        hist, bins = np.histogram(pixels, bins=256, range=(0, 255))
         hist = hist / np.max(hist)
         # Plot the histogram as a bar chart
         plt.bar(bins[:-1], hist, width=2, color="black")
