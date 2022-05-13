@@ -69,7 +69,7 @@ class Filters:
                     image.setPixel(x, y, qRgb(255 - p[0], 255 - p[1], 255 - p[2]))
         return image
 
-    def binarize(self, threshold: int = 127) -> QImage:
+    def binarize(self) -> QImage:
         """
         Binarizes the intensity of the pixels.
         For Grayscale QImages, it's known as a real B&W.
@@ -81,16 +81,12 @@ class Filters:
         image = QImage(w, h, QImage.Format_RGB888)
         f = None
         if self.img.isGrayscale():
-            f = (
-                lambda pixel: qRgb(255, 255, 255)
-                if pixel[0] > threshold
-                else qRgb(0, 0, 0)
-            )
+            f = lambda pixel: qRgb(255, 255, 255) if pixel[0] > 128 else qRgb(0, 0, 0)
         else:
             f = lambda pixel: qRgb(
-                255 if pixel[0] > threshold else 0,
-                255 if pixel[1] > threshold else 0,
-                255 if pixel[2] > threshold else 0,
+                255 if pixel[0] > 128 else 0,
+                255 if pixel[1] > 128 else 0,
+                255 if pixel[2] > 128 else 0,
             )
 
         for x in range(w):
