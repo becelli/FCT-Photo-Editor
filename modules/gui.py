@@ -193,6 +193,9 @@ class MainWindow(QMainWindow):
             "Dynamic Compression": lambda: f("dynamic_compression"),
             "Sobel": lambda: f("sobel"),
             "Laplacian": lambda: f("laplacian"),
+            # "Prewitt": lambda: f("prewitt"),
+            # "Roberts": lambda: f("roberts"),
+            "Limiarization": lambda: f("limiarization"),
         }
 
         for i, (name, filter) in enumerate(filters.items()):
@@ -214,17 +217,23 @@ class MainWindow(QMainWindow):
             case "binarize":
                 output = f.binarize()
             case "blur":
-                output = f.blur()
+                output = f.blur(n=3)
             case "blur_median":
-                output = f.blur_median()
+                output = f.blur_median(n=3)
             case "salt_and_pepper":
-                output = f.salt_and_pepper()
+                output = f.salt_and_pepper(amount=10)
             case "dynamic_compression":
-                output = f.dynamic_compression()
+                output = f.dynamic_compression(c=1, gama=1)
             case "sobel":
                 output = f.sobel()
             case "laplacian":
                 output = f.laplace()
+            # case "prewitt":
+            #     output = f.prewitt()
+            # case "roberts":
+            #     output = f.roberts()
+            case "limiarization":
+                output = f.limiarization(t=127)
             case _:
                 pass
         if output:
