@@ -289,7 +289,7 @@ class Filters:
             for x in range(w):
                 for y in range(h):
                     p = qRed(image.pixel(x, y))
-                    if p[0] > t:
+                    if p > t:
                         image.setPixel(x, y, qRgb(0, 0, 0))
                     else:
                         image.setPixel(x, y, qRgb(255, 255, 255))
