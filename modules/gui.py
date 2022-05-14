@@ -97,7 +97,7 @@ class MainWindow(QMainWindow):
 
         w, h = int(self.w * 1.25), int(self.h * 0.8)
         child = QChildWindow(self, "Channels", w, h)
-        self._show_grid_on_window(child, grid)
+        self._display_grid_on_window(child, grid)
 
     # Histogram functions
     def _get_histogram_gray_image(self) -> QImage:
@@ -128,7 +128,8 @@ class MainWindow(QMainWindow):
         label.setStyleSheet(f"background-color: {color};")
         label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         label.setFixedWidth(int(self.w * 1.3 / 3))
-        canvas.setPixmap(f.get_channel(color))
+        pixmap = QPixmap.fromImage(f.get_channel(color))
+        canvas.setPixmap(pixmap)
         canvas.setContentsMargins(0, 0, 0, 0)
 
     def _display_grid_on_window(self, window: QMainWindow, grid: QGrid) -> None:
