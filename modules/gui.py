@@ -63,6 +63,8 @@ class MainWindow(QMainWindow):
         self.input_canvas.mouseMoveEvent = self._display_pixel_info
 
         output_label, self.output_canvas = self._create_canvas("Saída")
+        self.output_canvas.setMouseTracking(True)
+        self.output_canvas.mouseMoveEvent = self._display_pixel_info
 
         apply_button = self._create_apply_changes_button()
 
