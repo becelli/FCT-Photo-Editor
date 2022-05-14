@@ -175,18 +175,18 @@ class Filters:
         if self.img.isGrayscale():
             for x in range(w):
                 for y in range(h):
-                    area = self.get_pixel_area(x + pa, y + pb, (a, b))
+                    area = self.get_pixel_area_gray(x + pa, y + pb, (a, b))
                     new = 0.0
                     for i in range(a):
                         for j in range(b):
-                            new += area[i * 3 + j][0] * mask[i][j]
+                            new += area[i * 3 + j] * mask[i][j]
                     new = int(new)
                     image.setPixel(x, y, qRgb(new, new, new))
         else:
             for x in range(w):
                 for y in range(h):
                     new = [0, 0, 0]
-                    area = self.get_pixel_area(x + pb, y + pb, (a, b))
+                    area = self.get_pixel_area(x + pa, y + pb, (a, b))
                     for i in range(a):
                         for j in range(b):
                             for k in range(3):
@@ -213,7 +213,26 @@ class Filters:
         # All n = (a * b) pixels around, including the (x, y) pixel.
         return area
 
-    def blur(self, n: int = 3) -> QImage:
+    def get_pixel_area_gray(self, x, y, size) -> np.ndarray:
+        """
+        Returns the area of a pixel.
+        """
+        # Pixels to left/right and top/bottom.
+        a, b = size[0] // 2, size[1] // 2
+        # Area around the pixel.
+        area = np.zeros((size[0] * size[1]))
+
+        # Running around the (x, y) pixel.
+
+        it = 0
+        for i in range(x - a, x + a + 1):
+            for j in range(y - b, y + b + 1):
+                area[it] = qRed(self.img.pixel(i, j))
+                it += 1
+        # All n = (a * b) pixels around, including the (x, y) pixel.
+        return area
+
+    def mean(self, n: int = 3) -> QImage:
         """
         Blurs an img.
         """

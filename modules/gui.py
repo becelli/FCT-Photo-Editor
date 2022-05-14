@@ -177,8 +177,8 @@ class MainWindow(QMainWindow):
             "Negative": lambda: f("negative"),
             "Binarize": lambda: f("binarize"),
             "Salt and Pepper": lambda: f("salt_and_pepper"),
-            "Gaussian Blur": lambda: f("blur"),
-            "Blur Median": lambda: f("blur_median"),
+            "Mean": lambda: f("mean"),
+            "Median": lambda: f("median"),
             "Dynamic Compression": lambda: f("dynamic_compression"),
             "Sobel": lambda: f("sobel"),
             "Laplacian": lambda: f("laplacian"),
@@ -237,10 +237,10 @@ class MainWindow(QMainWindow):
                 output = f.negative()
             case "binarize":
                 output = f.binarize()
-            case "blur":
-                output = f.blur(n=3)
-            case "blur_median":
-                output = f.blur_median(n=3)
+            case "mean":
+                output = f.mean(n=3)
+            case "median":
+                output = f.median(n=3)
             case "salt_and_pepper":
                 output = f.salt_and_pepper(amount=10)
             case "dynamic_compression":
