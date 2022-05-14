@@ -164,6 +164,7 @@ class MainWindow(QMainWindow):
         commands = {
             "Histogram": (self.show_histogram, "Ctrl+H"),
             "Channels": (self.show_channels, "Ctrl+C"),
+            "RGB to HSL": (ColorConverter(self).show_rgb_and_hsl_converter, "Ctrl+R"),
         }
         for name, (func, shortcut) in commands.items():
             m = self._add_submenu(name, func, shortcut)
