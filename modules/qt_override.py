@@ -74,3 +74,13 @@ class QDialogs(QWidget):
             self, "Save Image", "image.bmp", "Image Files (*.png *.jpg *.bmp)"
         )
         return filename
+
+
+def display_grid_on_window(window: QMainWindow, grid: QGrid) -> None:
+    """
+    Set the layout of a window.
+    """
+    widget = QWidget()
+    widget.setLayout(grid)
+    window.setCentralWidget(widget)
+    window.show()

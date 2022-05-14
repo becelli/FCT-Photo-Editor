@@ -18,9 +18,16 @@ from PyQt5.QtGui import (
 )
 from PyQt5.QtCore import Qt
 from modules.filters import Filters
+from modules.color_converter import ColorConverter
 from modules.functions import gray_from_rgb
 from modules.statemanager import StateManager, CanvaState
-from modules.qt_override import QGrid, QObjects, QDialogs, QChildWindow
+from modules.qt_override import (
+    QGrid,
+    QObjects,
+    QDialogs,
+    QChildWindow,
+    display_grid_on_window,
+)
 import numpy as np
 
 # Override the default QWidget to automatically center the elements
@@ -79,7 +86,7 @@ class MainWindow(QMainWindow):
 
         grid.setRowStretch(3, 1)
 
-        self._display_grid_on_window(self, grid)
+        display_grid_on_window(self, grid)
 
     def show_histogram(self) -> None:
         import matplotlib.pyplot as plt
@@ -99,7 +106,7 @@ class MainWindow(QMainWindow):
 
         w, h = int(self.w * 1.25), int(self.h * 0.8)
         child = QChildWindow(self, "Channels", w, h)
-        self._display_grid_on_window(child, grid)
+        display_grid_on_window(child, grid)
 
     # Histogram functions
     def _get_histogram_gray_image(self) -> QImage:
@@ -133,15 +140,6 @@ class MainWindow(QMainWindow):
         pixmap = QPixmap.fromImage(f.get_channel(color))
         canvas.setPixmap(pixmap)
         canvas.setContentsMargins(0, 0, 0, 0)
-
-    def _display_grid_on_window(self, window: QMainWindow, grid: QGrid) -> None:
-        """
-        Set the layout of a window.
-        """
-        widget = QWidget()
-        widget.setLayout(grid)
-        window.setCentralWidget(widget)
-        window.show()
 
     # Menubar functions
     def _fileMenu(self, fileMenu):
