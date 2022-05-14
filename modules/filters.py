@@ -240,15 +240,27 @@ class Filters:
         pixmap = self.apply_mask(mask)
         return pixmap
 
-    def blur_median(self, n: int = 3) -> QImage:
+    def median(self, n: int = 3) -> QImage:
         """
         Blurs an img.
         """
-        # TODO NOT IMPLEMENTED
-        mask = np.array([[0, 1, 0], [1, 1, 1], [0, 1, 0]]) / np.float64(5)
-
-        pixmap = self.apply_mask(mask)
-        return pixmap
+        a, b = n, n
+        pa, pb = a // 2, b // 2
+        w, h = self.img.width() - a + 1, self.img.height() - b + 1
+        image = QImage(w, h, QImage.Format_RGB888)
+        if self.img.isGrayscale():
+            for x in range(w):
+                for y in range(h):
+                    area = self.get_pixel_area_gray(x + pa, y + pb, (a, b))
+                    new = np.median(area, axis=0).astype(np.uint8)
+                    image.setPixel(x, y, qRgb(new, new, new))
+        else:
+            for x in range(w):
+                for y in range(h):
+                    area = self.get_pixel_area(x + pa, y + pb, (a, b))
+                    new = np.median(area, axis=0).astype(np.uint8)
+                    image.setPixel(x, y, qRgb(new[0], new[1], new[2]))
+        return image
 
     def dynamic_compression(self, c: float = 1, gama: float = 1) -> QImage:
         """
