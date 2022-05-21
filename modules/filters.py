@@ -183,23 +183,24 @@ class Filters:
         return image
 
     def sobel(self) -> QImage:
-        """
-        Finds edges in an img.
-        """
-        ver = np.array([[-1, -2, -1], [0, 0, 0], [1, 2, 1]]) / np.float64(4)
-        hor = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]) / np.float64(4)
-        if self.img.isGrayscale():
+        kernelY = np.array([[-1, -2, -1], [0, 0, 0], [1, 2, 1]]) / np.float64(4)
+        kernelX = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]) / np.float64(4)
+
+        if not self.img.isGrayscale():
             self.img = self.grayscale()
-        vertical = self.apply_mask(ver)
-        horizontal = self.apply_mask(hor)
+
+        vertical = self.apply_mask(kernelY)
+        horizontal = self.apply_mask(kernelX)
         w, h = vertical.width(), vertical.height()
         image = QImage(w, h, QImage.Format_RGB888)
+
         for x in range(w):
             for y in range(h):
                 vert = qRed(vertical.pixel(x, y))
                 horiz = qRed(horizontal.pixel(x, y))
-                c = min(255, vert + horiz)
-                image.setPixel(x, y, qRgb(c, c, c))
+                c = int(np.abs(np.sqrt(vert**2 + horiz**2)))
+                pixel = qRgb(c, c, c)
+                image.setPixel(x, y, pixel)
         return image
 
     def laplace(self) -> QImage:
