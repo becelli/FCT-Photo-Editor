@@ -1,11 +1,9 @@
 # Import QImage and QPixmap
-from PyQt5.QtGui import QImage, QPixmap, QColor, qRgb, qRed, qGreen, qBlue
+from PyQt5.QtGui import QImage, QPixmap, QColor, qRgb, qRed, qGreen, qBlue, qGray
 from ctypes import *
 import numpy as np
 import time
 from modules.functions import gray_from_rgb
-
-# import buffer
 
 
 class Filters:
