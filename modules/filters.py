@@ -204,15 +204,10 @@ class Filters:
         return image
 
     def laplace(self) -> QImage:
-        """
-        Finds edges in an img.
-        """
-        # mask = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]])
-        mask = np.array([[-1, -1, -1], [-1, 9, -1], [-1, -1, -1]])
-        if self.img.isGrayscale():
+        mask = np.array([[-1, -1, -1], [-1, 8, -1], [-1, -1, -1]]) / np.float64(8)
+        if not self.img.isGrayscale():
             self.img = self.grayscale()
-        image = self.apply_mask(mask)
-        return image
+        return self.apply_mask(mask)
 
     def limiarization(self, t: int = 127) -> QImage:
         """
