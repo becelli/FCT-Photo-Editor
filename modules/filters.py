@@ -141,77 +141,6 @@ class Filters:
 
         return image
 
-    def apply_mask(
-        self,
-        mask: np.ndarray,
-    ) -> QImage:
-        """
-        Applies a mask to an img.
-        """
-        a, b = mask.shape
-        pa, pb = a // 2, b // 2
-        w, h = self.img.width() - a + 1, self.img.height() - b + 1
-        image = QImage(w, h, QImage.Format_RGB888)
-        if self.img.isGrayscale():
-            for x in range(w):
-                for y in range(h):
-                    area = self.get_pixel_area_gray(x + pa, y + pb, (a, b))
-                    new = 0.0
-                    for i in range(a):
-                        for j in range(b):
-                            new += area[i * 3 + j] * mask[i][j]
-                    new = int(new)
-                    image.setPixel(x, y, qRgb(new, new, new))
-        else:
-            for x in range(w):
-                for y in range(h):
-                    new = [0, 0, 0]
-                    area = self.get_pixel_area(x + pa, y + pb, (a, b))
-                    for i in range(a):
-                        for j in range(b):
-                            for k in range(3):
-                                new[k] += area[i * 3 + j][k] * mask[i][j]
-                    image.setPixel(x, y, qRgb(int(new[0]), int(new[1]), int(new[2])))
-        return image
-
-    def get_pixel_area(self, x, y, size) -> np.ndarray:
-        """
-        Returns the area of a pixel.
-        """
-        # Pixels to left/right and top/bottom.
-        a, b = size[0] // 2, size[1] // 2
-        # Area around the pixel.
-        area = np.zeros((size[0] * size[1], 3))
-
-        # Running around the (x, y) pixel.
-
-        it = 0
-        for i in range(x - a, x + a + 1):
-            for j in range(y - b, y + b + 1):
-                area[it] = QColor(self.img.pixel(i, j)).getRgb()[:3]
-                it += 1
-        # All n = (a * b) pixels around, including the (x, y) pixel.
-        return area
-
-    def get_pixel_area_gray(self, x, y, size) -> np.ndarray:
-        """
-        Returns the area of a pixel.
-        """
-        # Pixels to left/right and top/bottom.
-        a, b = size[0] // 2, size[1] // 2
-        # Area around the pixel.
-        area = np.zeros((size[0] * size[1]))
-
-        # Running around the (x, y) pixel.
-
-        it = 0
-        for i in range(x - a, x + a + 1):
-            for j in range(y - b, y + b + 1):
-                area[it] = qRed(self.img.pixel(i, j))
-                it += 1
-        # All n = (a * b) pixels around, including the (x, y) pixel.
-        return area
-
     def mean(self, n: int = 3) -> QImage:
         mask = np.ones((n, n)) / np.float64(n * n)
         pixmap = self.apply_mask(mask)
@@ -307,5 +236,72 @@ class Filters:
                     g = 255 if g > t else 0
                     b = 255 if b > t else 0
                     image.setPixel(x, y, qRgb(r, g, b))
-
         return image
+
+    def apply_mask(self, mask: np.ndarray) -> QImage:
+        a, b = mask.shape
+        pa, pb = a // 2, b // 2
+        w, h = self.img.width() - a + 1, self.img.height() - b + 1
+        image = QImage(w, h, QImage.Format_RGB888)
+        if self.img.isGrayscale():
+            for x in range(w):
+                for y in range(h):
+                    area = self.get_pixel_area_gray(x + pa, y + pb, (a, b))
+                    new = np.float(0)
+                    for i in range(a):
+                        for j in range(b):
+                            new += area[j * 3 + i] * mask[i][j]
+                    new = np.round(np.abs(new), 0).astype(np.uint8)
+                    pixel = qRgb(new, new, new)
+                    image.setPixel(x, y, pixel)
+        else:
+            for x in range(w):
+                for y in range(h):
+                    new = np.zeros(3)
+                    area = self.get_pixel_area(x + pa, y + pb, (a, b))
+                    for i in range(a):
+                        for j in range(b):
+                            for k in range(3):
+                                new[k] += area[j * 3 + i][k] * mask[i][j]
+                    new = np.round(np.abs(new), 0).astype(np.uint8)
+                    pixel = qRgb(new[0], new[1], new[2])
+                    image.setPixel(x, y, pixel)
+        return image
+
+    def get_pixel_area(self, x, y, size) -> np.ndarray:
+        """
+        Returns the area of a pixel.
+        """
+        # Pixels to left/right and top/bottom.
+        a, b = size[0] // 2, size[1] // 2
+        # Area around the pixel.
+        area = np.zeros((size[0] * size[1], 3))
+
+        # Running around the (x, y) pixel.
+
+        it = 0
+        for i in range(x - a, x + a + 1):
+            for j in range(y - b, y + b + 1):
+                area[it] = QColor(self.img.pixel(i, j)).getRgb()[:3]
+                it += 1
+        # All n = (a * b) pixels around, including the (x, y) pixel.
+        return area
+
+    def get_pixel_area_gray(self, x, y, size) -> np.ndarray:
+        """
+        Returns the area of a pixel.
+        """
+        # Pixels to left/right and top/bottom.
+        a, b = size[0] // 2, size[1] // 2
+        # Area around the pixel.
+        area = np.zeros((size[0] * size[1]))
+
+        # Running around the (x, y) pixel.
+
+        it = 0
+        for i in range(x - a, x + a + 1):
+            for j in range(y - b, y + b + 1):
+                area[it] = qRed(self.img.pixel(i, j))
+                it += 1
+        # All n = (a * b) pixels around, including the (x, y) pixel.
+        return area
