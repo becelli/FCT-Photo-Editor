@@ -73,25 +73,7 @@ class Filters:
         For Grayscale QImages, it's known as a real B&W.
         For RGB Qimages, it will binarize each color channel.
         """
-
-        # Grayscale
-        w, h = self.img.width(), self.img.height()
-        image = QImage(w, h, QImage.Format_RGB888)
-        f = None
-        if self.img.isGrayscale():
-            f = lambda pixel: qRgb(255, 255, 255) if pixel[0] > 128 else qRgb(0, 0, 0)
-        else:
-            f = lambda pixel: qRgb(
-                255 if pixel[0] > 128 else 0,
-                255 if pixel[1] > 128 else 0,
-                255 if pixel[2] > 128 else 0,
-            )
-
-        for x in range(w):
-            for y in range(h):
-                pixel = QColor(self.img.pixel(x, y)).getRgb()
-                image.setPixel(x, y, f(pixel))
-        return image
+        return self.limiarization(127)
 
     def salt_and_pepper(self, amount: float = 1) -> QImage:
         """
@@ -231,10 +213,7 @@ class Filters:
         return area
 
     def mean(self, n: int = 3) -> QImage:
-        """
-        Blurs an img.
-        """
-        mask = np.ones((n, n)) / np.float64(n * n)  # 1/9 mask
+        mask = np.ones((n, n)) / np.float64(n * n)
         pixmap = self.apply_mask(mask)
         return pixmap
 
@@ -261,9 +240,6 @@ class Filters:
         return image
 
     def dynamic_compression(self, c: float = 1, gama: float = 1) -> QImage:
-        """
-        Blurs an img.
-        """
         image = QImage(self.img)
         w, h = image.width(), image.height()
         c = 1
