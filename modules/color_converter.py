@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QLabel, QPushButton, QLineEdit
+from PyQt5.QtWidgets import QLabel, QLineEdit
 from PyQt5.QtGui import QFont, QDoubleValidator
 from PyQt5.QtCore import Qt
 from modules.qt_override import QGrid, QChildWindow, display_grid_on_window
@@ -76,9 +76,11 @@ class ColorConverter:
                 value = 0
             elif value > 255:
                 value = 255
+            input_field.setText(str(value))
             setattr(self, f"{color}_c", value)
         except ValueError:
             pass
+
         self.color_preview.setStyleSheet(
             f"background-color: rgb({int(self.r_c)}, {int(self.g_c)}, {int(self.b_c)});"
         )
@@ -86,22 +88,18 @@ class ColorConverter:
 
     def _update_hsl_input(self, input_field: QLineEdit, color: str) -> None:
         try:
-            value = float(input_field.text())
+            value = int(input_field.text())
             if color == "h":
                 if value < 0:
                     value = 0
                 elif value > 239:
                     value = 239
-            elif color == "s":
+            elif color == "s" or color == "l":
                 if value < 0:
                     value = 0
                 elif value > 240:
                     value = 240
-            elif color == "l":
-                if value < 0:
-                    value = 0
-                elif value > 240:
-                    value = 240
+            input_field.setText(str(value))
             setattr(self, f"{color}_c", value)
         except ValueError:
             pass
@@ -211,16 +209,6 @@ class ColorConverter:
             lambda: self._update_hsl_input(self.l_input, "l")
         )
         grid.addWidget(self.l_input, 7, 1)
-
-        rgb_to_hsl_button = QPushButton("RGB -> HSL")
-        rgb_to_hsl_button.setFont(QFont("Arial", 12))
-        rgb_to_hsl_button.clicked.connect(lambda: self.rgb_to_hsl())
-        grid.addWidget(rgb_to_hsl_button, 8, 0, 1, 2)
-
-        hsl_to_rgb_button = QPushButton("HSL -> RGB")
-        hsl_to_rgb_button.setFont(QFont("Arial", 12))
-        hsl_to_rgb_button.clicked.connect(lambda: self.hsl_to_rgb())
-        grid.addWidget(hsl_to_rgb_button, 9, 0, 1, 2)
 
         # Color Preview
         self.color_preview = QLabel()
