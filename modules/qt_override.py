@@ -6,9 +6,8 @@ from PyQt5.QtWidgets import (
     QMainWindow,
     QPushButton,
 )
-from PyQt5.QtGui import QPixmap, QColor, QImage, QGuiApplication
+from PyQt5.QtGui import QPixmap, QImage
 from PyQt5.QtCore import Qt
-import matplotlib.pyplot as plt
 
 
 class QGrid(QGridLayout):

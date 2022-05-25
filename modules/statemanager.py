@@ -1,6 +1,3 @@
-# from classes.image import Image
-
-
 class StateManager:
     def __init__(self, max_states=16, initial_state=None):
         self.s = initial_state if initial_state else []

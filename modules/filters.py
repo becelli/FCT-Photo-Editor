@@ -1,6 +1,5 @@
 # Import QImage and QPixmap
 from PyQt5.QtGui import QImage
-from ctypes import *
 import numpy as np
 from modules.functions import (
     get_blue_from_color_integer,
