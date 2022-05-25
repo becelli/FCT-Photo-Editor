@@ -63,13 +63,13 @@ class QChildWindow(QMainWindow):
 
 
 class QDialogs(QWidget):
-    def open_path(self):
+    def get_open_path(self):
         filename, _ = QFileDialog.getOpenFileName(
             self, "Open Image", "", "Image Files (*.png *.jpg *.bmp)"
         )
         return filename
 
-    def save_path(self):
+    def get_save_path(self):
         filename, _ = QFileDialog.getSaveFileName(
             self, "Save Image", "image.bmp", "Image Files (*.png *.jpg *.bmp)"
         )
@@ -84,3 +84,27 @@ def display_grid_on_window(window: QMainWindow, grid: QGrid) -> None:
     widget.setLayout(grid)
     window.setCentralWidget(widget)
     window.show()
+
+
+def get_image_from_canvas(canvas: QLabel) -> QImage:
+    return canvas.pixmap().toImage()
+
+
+def get_pixmap_from_image(image: QImage) -> QPixmap:
+    return QPixmap.fromImage(image)
+
+
+def get_image_from_pixmap(pixmap: QPixmap) -> QImage:
+    return pixmap.toImage()
+
+
+def get_pixmap_from_canvas(canvas: QLabel) -> QPixmap:
+    return canvas.pixmap()
+
+
+def put_pixmap_on_canvas(canvas: QLabel, pixmap: QPixmap) -> None:
+    canvas.setPixmap(pixmap)
+
+
+def put_image_on_canvas(canvas: QLabel, image: QImage) -> None:
+    canvas.setPixmap(QPixmap.fromImage(image))

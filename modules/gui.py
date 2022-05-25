@@ -1,7 +1,6 @@
 import sys
 from PyQt5.QtWidgets import (
     QApplication,
-    QWidget,
     QLabel,
     QMainWindow,
     QAction,
@@ -14,23 +13,56 @@ from PyQt5.QtGui import (
     QFont,
     QGuiApplication,
     QMouseEvent,
-    QColor,
 )
 from PyQt5.QtCore import Qt
 from modules.filters import Filters
 from modules.color_converter import ColorConverter
-from modules.functions import gray_from_rgb
-from modules.statemanager import StateManager, CanvaState
+from modules.functions import (
+    get_gray_from_rgb,
+    get_rgb_from_color_integer,
+    get_gray_from_color_integer,
+    get_rgb_from_color_integer,
+)
+from modules.statemanager import StateManager, CanvasState
 from modules.qt_override import (
     QGrid,
     QObjects,
     QDialogs,
     QChildWindow,
     display_grid_on_window,
+    get_image_from_canvas,
+    get_image_from_pixmap,
+    get_pixmap_from_canvas,
+    get_pixmap_from_image,
+    put_image_on_canvas,
+    put_pixmap_on_canvas,
 )
 import numpy as np
 
 # Override the default QWidget to automatically center the elements
+
+
+class MenuAction:
+    def __init__(self, name, function, shortcut=None, tooltip=None):
+        self._name = name
+        self._function = function
+        self._shortcut = shortcut
+        self._tooltip = tooltip
+
+    def get_values(self):
+        return self._name, self._function, self._shortcut, self._tooltip
+
+    def get_function(self):
+        return self._function
+
+    def get_name(self):
+        return self._name
+
+    def get_shortcut(self):
+        return self._shortcut
+
+    def get_tooltip(self):
+        return self._tooltip
 
 
 class MainWindow(QMainWindow):
@@ -44,12 +76,13 @@ class MainWindow(QMainWindow):
 
     def initUI(self) -> None:
         self._set_window_properties()
-        self.menubar()
-        self.show_main_grid()
+        self.display_menubar()
+        self.display_main_content()
 
+    # Main Graphical User Interface
     def _set_window_properties(self) -> None:
         self.setWindowTitle("Digital Image Processing")
-        self.setFixedSize(self.window_dimensions)
+        self.setFixedSize(*self.window_dimensions)
         self._center_window()
         self.setWindowIcon(QIcon("assets/icon.png"))
 
@@ -59,176 +92,149 @@ class MainWindow(QMainWindow):
         temporary_window.moveCenter(center_point)
         self.move(temporary_window.topLeft())
 
-    def menubar(self):
-        mb = self.menuBar()  # Instantiate the menu bar
-        self.setMenuBar(mb)
-        self._append_itens_to_menu(mb)
+    def display_menubar(self):
+        menubar = self.menuBar()
+        self.setMenuBar(menubar)
+        self._add_menus_to_menubar(menubar)
 
-    def show_main_grid(self):
+    def display_main_content(self):
+        # TODO: I don't know if i should 'clear' this code.
+        # If I split this code in two, the creation of the labels and canvas
+        # will be hidden to this function.
         grid = QGrid()
+
         input_label, self.input_canvas = self._create_canvas("Entrada")
-        self.input_canvas.setMouseTracking(True)
-        self.input_canvas.mouseMoveEvent = self._display_pixel_info
+        self._set_mouse_tracking_to_show_pixel_details(self.input_canvas)
 
         output_label, self.output_canvas = self._create_canvas("Saída")
-        self.output_canvas.setMouseTracking(True)
-        self.output_canvas.mouseMoveEvent = self._display_pixel_info
+        self._set_mouse_tracking_to_show_pixel_details(self.output_canvas)
 
-        apply_button = self._create_apply_changes_button()
+        apply_changes_button = self._create_apply_changes_button()
 
-        self.pixel_color_label = self._mouse_hover_info()
+        self.pixel_color_label = self._create_pixel_color_and_coordinates_widget()
 
-        grid.addWidget(input_label, 0, 0)  # Input canvas (left)
+        grid.addWidget(input_label, 0, 0)
         grid.addWidget(self.input_canvas, 1, 0)
-        grid.addWidget(apply_button, 1, 1)  # Apply changes button (center)
-        grid.addWidget(output_label, 0, 2)  # Output canvas (right)
+        grid.addWidget(apply_changes_button, 1, 1)
+        grid.addWidget(output_label, 0, 2)
         grid.addWidget(self.output_canvas, 1, 2)
-        grid.addWidget(self.pixel_color_label, 2, 1)  # Color of the pixel selected.
+        grid.addWidget(self.pixel_color_label, 2, 1)
 
         grid.setRowStretch(3, 1)
 
         display_grid_on_window(self, grid)
 
-    def show_histogram(self) -> None:
+    # Feature: Display the histogram of the input image
+    def display_histogram(self) -> None:
         import matplotlib.pyplot as plt
 
-        hist, bins = self._calculate_histogram()
+        hist, bins = self._calculate_image_histogram()
         plt.bar(bins[:-1], hist, width=2, color="black")
         plt.title("Histograma")
         plt.show()
 
-    def show_channels(self) -> None:
-        """
-        Show the channel of an image.
-        """
-        grid = QGrid()
-        self._add_channels_to_grid(grid)
-        grid.setRowStretch(2, 1)
+    def _calculate_image_histogram(self) -> tuple[np.ndarray, np.ndarray]:
+        gray_image = self._get_gray_image()
+        image_pixels = self._get_array_of_pixels_from_image(gray_image)
+        hist, bins = np.histogram(image_pixels, bins=256, range=(0, 255))
+        hist = hist / np.max(hist)  # Normalizing
+        return hist, bins
 
-        w, h = int(self.w * 1.25), int(self.h * 0.8)
-        child = QChildWindow(self, "Channels", w, h)
-        display_grid_on_window(child, grid)
+    def _get_array_of_pixels_from_image(self, image: QImage) -> np.ndarray:
+        width, height = image.width(), image.height()
+        image_pixels_array = image.bits().asarray(width * height)
+        return image_pixels_array
 
-    # Histogram functions
-    def _get_histogram_gray_image(self) -> QImage:
-        f = Filters(self.input_canvas.pixmap().toImage())
+    def _get_gray_image(self) -> QImage:
+        f = Filters(img=get_image_from_canvas(self.input_canvas))
         image: QImage = f.grayscale()
         return image
 
-    def _calculate_histogram(self) -> tuple[np.ndarray, np.ndarray]:
-        image = self._get_histogram_gray_image()
-        bit_pixels = image.bits().asarray(image.width() * image.height())
-        hist, bins = np.histogram(bit_pixels, bins=256, range=(0, 255))
-        hist = hist / np.max(hist)
-        return hist, bins
+    # Feature: Display splitted color channels of the input image
+    def display_color_channels(self) -> None:
+        window = self._create_window_to_display_splitted_colors()
+        grid = self._create_grid_with_isolated_color_channels()
+        display_grid_on_window(window, grid)
 
-    # Split color channels functions
+    def _create_window_to_display_splitted_colors(self) -> None:
+        w, h = self.window_dimensions
+        w, h = int(w * 1.25), int(h * 0.8)
+        return QChildWindow(self, "Channels", w, h)
+
+    def _create_grid_with_isolated_color_channels(self) -> QGrid:
+        grid = QGrid()
+        self._add_channels_to_grid(grid)
+        grid.setRowStretch(2, 1)
+        return grid
+
     def _add_channels_to_grid(self, grid: QGrid) -> None:
-        f = Filters(self.input_canvas.pixmap().toImage())
         colors = ["red", "green", "blue"]
         for i, color in enumerate(colors):
-            l, c = self._create_canvas(colors[i], 320, 240)
-            self._get_channeled_images(f, color, l, c)
-            grid.addWidget(l, 0, i)
-            grid.addWidget(c, 1, i)
+            label, canvas = self._create_canvas(colors[i], 320, 240)
+            self._insert_isolated_color_channel_into_canvas(color, canvas)
+            self._get_styled_label_with_color(color, label)
+            grid.addWidget(label, 0, i)
+            grid.addWidget(canvas, 1, i)
 
-    def _get_channeled_images(
-        self, f: Filters, color: str, label: QLabel, canvas: QLabel
+    def _insert_isolated_color_channel_into_canvas(
+        self, color: str, canvas: QLabel
     ) -> None:
+        f = Filters(img=get_image_from_canvas(self.input_canvas))
+        image: QImage = f.get_channel(color)
+        put_image_on_canvas(canvas, image)
+
+    def _get_styled_label_with_color(self, color: str, label: QLabel) -> None:
         label.setStyleSheet(f"background-color: {color};")
         label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        label.setFixedWidth(int(self.w * 1.3 / 3))
-        pixmap = QPixmap.fromImage(f.get_channel(color))
-        canvas.setPixmap(pixmap)
-        canvas.setContentsMargins(0, 0, 0, 0)
+        label.setFixedWidth(int(self.window_dimensions[0] * 1.3 / 3))
 
-    # Menubar functions
-    def _fileMenu(self, fileMenu):
-        options = (
-            ("Open", self.open_image, "CTRL+O", "Open an image"),
-            ("Save", self.save_image, "CTRL+S", "Save the image"),
-            ("Exit", self.close, "CTRL+Q", "Exit the application"),
-        )
-        for (name, fn, hot, tip) in options:
-            fileMenu.addAction(self._add_submenu(name, fn, hot, tip))
+    # Feature: Display pixel details when the mouse pointer is over a pixel
+    def _set_mouse_tracking_to_show_pixel_details(self, element: QLabel) -> None:
+        element.setMouseTracking(True)
+        element.mouseMoveEvent = self._display_pixel_color_and_coordinates
 
-    def _editMenu(self, editMenu):
-        commands = {
-            "Undo": (self.undo, "Ctrl+Z"),
-            "Redo": (self.redo, "Ctrl+Shift+Z"),
-        }
-        for name, (func, shortcut) in commands.items():
-            m = self._add_submenu(name, func, shortcut)
-            editMenu.addAction(m)
-
-    def _toolsMenu(self, toolsMenu):
-        commands = {
-            "Histogram": (self.show_histogram, "Ctrl+H"),
-            "Channels": (self.show_channels, "Ctrl+C"),
-            "RGB to HSL": (ColorConverter(self).show_rgb_and_hsl_converter, "Ctrl+R"),
-        }
-        for name, (func, shortcut) in commands.items():
-            m = self._add_submenu(name, func, shortcut)
-            toolsMenu.addAction(m)
-
-    def _filtersMenu(self, filtersMenu):
-        f = lambda filter: self._apply_filter(filter)
-        filters = {
-            "Grayscale": lambda: f("grayscale"),
-            "Equalize": lambda: f("equalize"),
-            "Negative": lambda: f("negative"),
-            "Binarize": lambda: f("binarize"),
-            "Salt and Pepper": lambda: f("salt_and_pepper"),
-            "Mean": lambda: f("mean"),
-            "Median": lambda: f("median"),
-            "Dynamic Compression": lambda: f("dynamic_compression"),
-            "Sobel": lambda: f("sobel"),
-            "Laplacian": lambda: f("laplacian"),
-            # "Prewitt": lambda: f("prewitt"),
-            # "Roberts": lambda: f("roberts"),
-            "Limiarization": lambda: f("limiarization"),
-        }
-
-        for i, (name, filter) in enumerate(filters.items()):
-            shortcut = f"F{i+1}" if i < 12 else f"Ctrl+{i+1}"
-            tooltip = f"Apply {name} filter"
-            filtersMenu.addAction(self._add_submenu(name, filter, shortcut, tooltip))
-
-    # Canvas functions
-    def _mouse_hover_info(self) -> QLabel:
+    def _create_pixel_color_and_coordinates_widget(self) -> QLabel:
         widget = QLabel()
         widget.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        widget.setText(f"(0, 0)")
-        widget.setStyleSheet(
-            "background: black; color: white; border: 1px solid transparent;  border-radius: 10px;"
-        )
         widget.setFixedSize(120, 60)
         return widget
 
-    def _display_pixel_info(self, event: QMouseEvent) -> QColor:
-        """
-        Get the color of the pixel under the mouse cursor.
-        """
-        x, y, c = self._pixel_info(event)
-        self.pixel_color_label.setText(f"({x}, {y})")
-        fg = "white" if gray_from_rgb(*c) < 127 else "black"
+    def _display_pixel_color_and_coordinates(self, event: QMouseEvent) -> None:
+        x, y, color = self._get_pixel_coordinates_and_color(event)
+        self._display_new_pixel_color(color)
+        self._display_new_pixel_coordinates(x, y)
 
+    def _display_new_pixel_coordinates(self, x: int, y: int) -> None:
+        self.pixel_color_label.setText(f"({x}, {y})")
+
+    def _display_new_pixel_color(self, color: tuple[int, int, int]) -> None:
+        r, g, b = color
+        text_color = self._get_contrast_color(color)
         self.pixel_color_label.setStyleSheet(
-            f"background-color: rgb({c[0]}, {c[1]}, {c[2]}); \
-              color: {fg}; \
+            f"background-color: rgb({r}, {g}, {b}); \
+              color: {text_color}; \
               border: 1px solid transparent; \
               border-radius: 10px;"
         )
 
-    def _pixel_info(self, event: QMouseEvent) -> None:
+    def _get_contrast_color(self, bg_color: tuple[int, int, int]) -> str:
+        return "white" if get_gray_from_rgb(*bg_color) < 128 else "black"
+
+    def _get_pixel_coordinates_and_color(
+        self, event: QMouseEvent, canvas: QLabel = None
+    ) -> tuple[int, int, tuple]:
+        if canvas is None:
+            canvas = self.input_canvas
+
         x, y = event.x(), event.y()
-        image = self.input_canvas.pixmap().toImage()
-        color = QColor(image.pixel(x, y)).getRgb()[:3]
+        image = get_image_from_canvas(canvas)
+        pixel_integer = image.pixel(x, y)
+        color = get_rgb_from_color_integer(pixel_integer)
         return x, y, color
 
-    def _apply_filter(self, filter: str) -> None:
-        # Create image from QPixmap
-        f = Filters(QImage(self.input_canvas.pixmap()))
+    # Feature: Apply filters to the input image.
+    def _apply_filter_to_input_image(self, filter: str) -> None:
+        f = Filters(get_image_from_canvas(self.input_canvas))
         output = None
         match filter:
             case "grayscale":
@@ -251,23 +257,28 @@ class MainWindow(QMainWindow):
                 output = f.sobel()
             case "laplacian":
                 output = f.laplace()
-            # case "prewitt":
-            #     output = f.prewitt()
-            # case "roberts":
-            #     output = f.roberts()
             case "limiarization":
                 output = f.limiarization(t=127)
             case _:
                 pass
+
         if output:
             self._update_output_canvas(output)
 
-    def _apply_output(self):
-        self.input_canvas.setPixmap(self.output_canvas.pixmap())
+    def _apply_output_to_input_canvas(self):
+        pixmap = get_pixmap_from_canvas(self.output_canvas)
+        put_pixmap_on_canvas(self.input_canvas, pixmap)
+        self._add_current_canvas_to_history()
 
-    def _update_output_canvas(self, qimage: QImage):
-        pixmap = QPixmap.fromImage(qimage)
-        self.output_canvas.setPixmap(pixmap)
+    def _update_output_canvas(self, new_image: QImage):
+        put_image_on_canvas(self.output_canvas, new_image)
+        self._add_current_canvas_to_history()
+
+    def _add_current_canvas_to_history(self):
+        pass
+        # input_pixmap = get_pixmap_from_canvas(self.input_canvas)
+        # output_pixmap = get_pixmap_from_canvas(self.output_canvas)
+        # # self.app_state.add(CanvasState(input_pixmap, output_pixmap))
 
     # Qt Manipulations
     def _create_canvas(
@@ -284,7 +295,7 @@ class MainWindow(QMainWindow):
     def _create_apply_changes_button(self) -> QPushButton:
         button = QObjects.button(
             name="Apply",
-            func=self._apply_output,
+            func=self._apply_output_to_input_canvas,
             shortcut="CTRL+P",
             tooltip="Aplicar Alterações",
         )
@@ -292,6 +303,7 @@ class MainWindow(QMainWindow):
         button.setStyleSheet("font-weight: bold; padding: 15px;")
         return button
 
+    # Feature: Menubar functions
     def _add_submenu(self, name=None, func=None, shortcut=None, tooltip=None):
         m = QAction(name, self)
         if func:
@@ -302,44 +314,94 @@ class MainWindow(QMainWindow):
             m.setToolTip(tooltip)
         return m
 
-    def _append_itens_to_menu(self, menu) -> None:
-        menus = {
-            "File": self._fileMenu,
-            "Edit": self._editMenu,
-            "Filters": self._filtersMenu,
-            "Tools": self._toolsMenu,
-        }
-        for menu_name, menu_function in menus.items():
-            menu_function(menu.addMenu(menu_name))
+    def _add_menus_to_menubar(self, menubar) -> None:
+        menus = (
+            MenuAction("File", self._add_actions_to_file_menu),
+            MenuAction("Edit", self._add_actions_to_edit_menu),
+            MenuAction("Filters", self._add_actions_to_filters_menu),
+            MenuAction("Tools", self._add_actions_to_tools_menu),
+        )
+        for menu in menus:
+            new_menu = menubar.addMenu(menu.get_name())
+            add_submenus_to = menu.get_function()
+            add_submenus_to(new_menu)
+
+    def _add_actions_to_file_menu(self, file_menu):
+        actions = (
+            MenuAction("Open", self.open_image, "CTRL+O", "Open an image"),
+            MenuAction("Save", self.save_image, "CTRL+S", "Save the image"),
+            MenuAction("Exit", self.close, "CTRL+Q", "Exit the application"),
+        )
+        self._add_actions_to_generic_menu(file_menu, actions)
+
+    def _add_actions_to_edit_menu(self, edit_menu):
+        actions = (
+            MenuAction("Undo", self.undo, "Ctrl+Z", "Undo the last action"),
+            MenuAction("Redo", self.redo, "Ctrl+Shift+Z", "Redo the last action"),
+        )
+        self._add_actions_to_generic_menu(edit_menu, actions)
+
+    def _add_actions_to_tools_menu(self, tools_menu):
+        color_converter = lambda: ColorConverter(self).show_rgb_and_hsl_converter()
+        # Declaring here to do not break identation.
+        actions = (
+            MenuAction("Histogram", self.display_histogram, "Ctrl+H"),
+            MenuAction("Channels", self.display_color_channels, "Ctrl+C"),
+            MenuAction("RGB to HSL", color_converter, "Ctrl+R"),
+        )
+        self._add_actions_to_generic_menu(tools_menu, actions)
+
+    def _add_actions_to_filters_menu(self, filters_menu):
+        f = lambda filter: self._apply_filter_to_input_image(filter)
+        filters = (
+            MenuAction("Grayscale", lambda: f("grayscale"), "F1"),
+            MenuAction("Equalize", lambda: f("equalize"), "F2"),
+            MenuAction("Negative", lambda: f("negative")),
+            MenuAction("Binarize", lambda: f("binarize")),
+            MenuAction("Salt and Pepper", lambda: f("salt_and_pepper")),
+            MenuAction("Mean", lambda: f("mean"), "F3"),
+            MenuAction("Median", lambda: f("median"), "F4"),
+            MenuAction("Dynamic Compression", lambda: f("dynamic_compression")),
+            MenuAction("Sobel", lambda: f("sobel"), "F5"),
+            MenuAction("Laplacian", lambda: f("laplacian"), "F6"),
+            MenuAction("Limiarization", lambda: f("limiarization")),
+        )
+        self._add_actions_to_generic_menu(filters_menu, filters)
+
+    def _add_actions_to_generic_menu(self, menu, actions: tuple[MenuAction]):
+        for action in actions:
+            name, func, shortcut, tooltip = action.get_values()
+            act = self._add_submenu(name, func, shortcut, tooltip)
+            # Adding is safe when any of the above parameters is None.
+            menu.addAction(act)
 
     # State management
     def undo(self):
-        s = self.state.prev()
-        if s:
-            if s.input:
-                self.input_canvas.setPixmap(s.input)
-            if s.output:
-                self.output_canvas.setPixmap(s.output)
+        state = self.app_state.prev()
+        self._update_state_of_canvas(state)
 
     def redo(self):
-        s = self.state.next()
-        if s:
-            if s.input:
-                self.input_canvas.setPixmap(s.input)
-            if s.output:
-                self.output_canvas.setPixmap(s.output)
+        state = self.app_state.next()
+        self._update_state_of_canvas(state)
+
+    def _update_state_of_canvas(self, state: CanvasState):
+        if state:
+            if state.input:
+                put_pixmap_on_canvas(self.input_canvas, state.input)
+            if state.output:
+                put_pixmap_on_canvas(self.output_canvas, state.output)
 
     # File management
     def open_image(self):
-        filename = QDialogs().open_path()
+        filename = QDialogs().get_open_path()
         if filename:
             pixmap = QPixmap(filename).scaled(320, 240)
-            self.input_canvas.setPixmap(pixmap)
+            put_pixmap_on_canvas(self.input_canvas, pixmap)
 
     def save_image(self):
-        filename = QDialogs().save_path()
+        filename = QDialogs().get_save_path()
         if filename:
-            self.input_canvas.pixmap().save(filename)
+            get_pixmap_from_canvas(self.input_canvas).save(filename)
 
 
 def main():

@@ -38,6 +38,6 @@ class StateManager:
         return None
 
 
-class CanvaState:
+class CanvasState:
     def __init__(self, inp: any = None, out: any = None):
         self.input, self.output = inp, out
