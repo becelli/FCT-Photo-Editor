@@ -36,27 +36,28 @@ import numpy as np
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.title = "Digital Image Processing"
-        self.w, self.h = 750, 330
-        self.state = StateManager(max_states=64)
+        self.window_dimensions = (750, 330)
+        self.app_state = StateManager(max_states=64)
         self.input_canvas: QLabel = QLabel()
         self.output_canvas: QLabel = QLabel()
         self.initUI()
 
-    def _set_window_props(self) -> None:
-        self.setWindowTitle(self.title)
-        # self.setFixedSize(self.w, self.h)
-        self.setGeometry(0, 0, self.w, self.h)
-        qt_rectangle = self.frameGeometry()
-        center_point = QGuiApplication.primaryScreen().availableGeometry().center()
-        qt_rectangle.moveCenter(center_point)
-        self.move(qt_rectangle.topLeft())
-        self.setWindowIcon(QIcon("assets/icon.png"))
-
     def initUI(self) -> None:
-        self._set_window_props()
+        self._set_window_properties()
         self.menubar()
         self.show_main_grid()
+
+    def _set_window_properties(self) -> None:
+        self.setWindowTitle("Digital Image Processing")
+        self.setFixedSize(self.window_dimensions)
+        self._center_window()
+        self.setWindowIcon(QIcon("assets/icon.png"))
+
+    def _center_window(self) -> None:
+        temporary_window = self.frameGeometry()
+        center_point = QGuiApplication.primaryScreen().availableGeometry().center()
+        temporary_window.moveCenter(center_point)
+        self.move(temporary_window.topLeft())
 
     def menubar(self):
         mb = self.menuBar()  # Instantiate the menu bar
