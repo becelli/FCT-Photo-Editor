@@ -356,15 +356,15 @@ class MainWindow(QMainWindow):
         filters = (
             MenuAction("Grayscale", lambda: f("grayscale"), "F1"),
             MenuAction("Equalize", lambda: f("equalize"), "F2"),
-            MenuAction("Negative", lambda: f("negative")),
-            MenuAction("Binarize", lambda: f("binarize")),
-            MenuAction("Salt and Pepper", lambda: f("salt_and_pepper")),
-            MenuAction("Mean", lambda: f("mean"), "F3"),
-            MenuAction("Median", lambda: f("median"), "F4"),
-            MenuAction("Dynamic Compression", lambda: f("dynamic_compression")),
-            MenuAction("Sobel", lambda: f("sobel"), "F5"),
-            MenuAction("Laplacian", lambda: f("laplacian"), "F6"),
-            MenuAction("Limiarization", lambda: f("limiarization")),
+            MenuAction("Negative", lambda: f("negative"), "F3"),
+            MenuAction("Binarize", lambda: f("binarize"), "F4"),
+            MenuAction("Salt and Pepper", lambda: f("salt_and_pepper"), "F5"),
+            MenuAction("Mean", lambda: f("mean"), "F6"),
+            MenuAction("Median", lambda: f("median"), "F7"),
+            MenuAction("Dynamic Compression", lambda: f("dynamic_compression"), "F8"),
+            MenuAction("Sobel", lambda: f("sobel"), "F9"),
+            MenuAction("Laplacian", lambda: f("laplacian"), "F10"),
+            MenuAction("Limiarization", lambda: f("limiarization"), "F11"),
         )
         self._add_actions_to_generic_menu(filters_menu, filters)
 
