@@ -1,4 +1,4 @@
-from classes.image import Image
+# from classes.image import Image
 
 
 class StateManager:
@@ -39,5 +39,5 @@ class StateManager:
 
 
 class CanvaState:
-    def __init__(self, inp: Image = None, out: Image = None):
+    def __init__(self, inp: any = None, out: any = None):
         self.input, self.output = inp, out
