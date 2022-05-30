@@ -63,8 +63,9 @@ class Filters:
 
     def _negative_gray_pixel(self, x, y):
         pixel = self.img.pixel(x, y)
-        new_pixel = 255 - get_gray_from_rgb(pixel)
-        return get_color_integer_from_gray(new_pixel)
+        gray = get_gray_from_color_integer(pixel)
+        new_gray = 255 - gray
+        return get_color_integer_from_gray(new_gray)
 
     def _negative_colored_pixel(self, x, y):
         pixel = self.img.pixel(x, y)
@@ -136,7 +137,21 @@ class Filters:
         return image
 
     def mean(self, n: int = 3) -> QImage:
-        mask = np.ones((n, n)) / np.float64(n * n)
+        # mask = np.ones((n, n)) / np.float64(n * n)
+        mask = np.array(
+            [
+                [1, 1, 1],
+                [1, 1, 1],
+                [1, 1, 1],
+                [1, 1, 1],
+                [1, 1, 1],
+                [1, 1, 1],
+                [1, 1, 1],
+                [1, 1, 1],
+                [1, 1, 1],
+            ]
+        )
+        mask = mask / np.float(mask.shape[0] * mask.shape[1])
         pixmap = self.apply_convolution(mask)
         return pixmap
 
