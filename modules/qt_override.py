@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import (
     QMainWindow,
     QPushButton,
 )
-from PyQt5.QtGui import QPixmap, QImage
+from PyQt5.QtGui import QPixmap, QImage, QColor
 from PyQt5.QtCore import Qt
 
 
@@ -26,9 +26,18 @@ class QObjects:
     def canvas(width: int, height: int) -> QLabel:
         img = QLabel()
         image = QImage(width, height, QImage.Format.Format_RGB32)
-        # image.fill(QColor(0, 0, 0).rgb())
-        img.setPixmap(QPixmap.fromImage(image))
+        QObjects._fill_rgb_gradient(image, width, height)
+        put_image_on_canvas(img, image)
         return img
+
+    @staticmethod
+    def _fill_rgb_gradient(image: QImage, width: int, height: int) -> None:
+        color = QColor()
+        x_ratio = 360 / width  # 360º of the color spectrum (HSL representation)
+        for x in range(width):
+            for y in range(height):
+                color.setHsl(int(x * x_ratio), 255, 128)
+                image.setPixel(x, y, color.rgb())
 
     @staticmethod
     def label(text: str) -> QLabel:
