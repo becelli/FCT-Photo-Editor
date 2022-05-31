@@ -82,7 +82,7 @@ class MainWindow(QMainWindow):
     # Main Graphical User Interface
     def _set_window_properties(self) -> None:
         self.setWindowTitle("Digital Image Processing")
-        self.setFixedSize(*self.window_dimensions)
+        # self.setFixedSize(*self.window_dimensions)
         self._center_window()
         self.setWindowIcon(QIcon("assets/icon.png"))
 
