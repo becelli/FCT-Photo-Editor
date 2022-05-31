@@ -18,9 +18,13 @@ class Filters:
     def __init__(self, img: QImage):
         self.img: QImage = img
 
+    def _create_new_image(self, width=320, height=240):
+        image = QImage(width, height, QImage.Format_RGB32)
+        return image
+
     def _get_default_elements_to_filters(self) -> tuple:
         w, h = self.img.width(), self.img.height()
-        image = QImage(w, h, QImage.Format_RGB32)
+        image = self._create_new_image(w, h)
         return w, h, image
 
     def grayscale(self) -> QImage:
@@ -246,6 +250,23 @@ class Filters:
         if not self.img.isGrayscale():
             self.img = self.grayscale()
         return self.apply_convolution(mask)
+
+    def resize_nearest_neighbor(self, w: int, h: int) -> QImage:
+        image = self._create_new_image(w, h)
+        ratio_x = self.img.width() / w
+        ratio_y = self.img.height() / h
+        for x in range(w):
+            for y in range(h):
+                new_pixel = self._resize_nearest_neighbor_pixel(x, y, ratio_x, ratio_y)
+                image.setPixel(x, y, new_pixel)
+        return image
+
+    def _resize_nearest_neighbor_pixel(
+        self, x: int, y: int, ratio_x: float, ratio_y: float
+    ) -> QImage:
+        x_ = int(x * ratio_x)
+        y_ = int(y * ratio_y)
+        return self.img.pixel(x_, y_)
 
     def limiarization(self, t: int = 160) -> QImage:
         """
