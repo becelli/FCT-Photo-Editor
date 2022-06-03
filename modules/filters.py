@@ -198,7 +198,9 @@ class Filters:
                 new_pixel = f(x, y, c, gama)
                 image.setPixel(x, y, new_pixel)
 
-        return image
+        self.img = image
+        normalized_img = self.normalize()
+        return normalized_img
 
     def _dynamic_compression_gray_pixel(
         self, x: int, y: int, c: float = 1, gama: float = 1
