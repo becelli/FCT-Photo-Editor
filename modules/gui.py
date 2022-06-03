@@ -112,6 +112,7 @@ class MainWindow(QMainWindow):
         apply_changes_button = self._create_apply_changes_button()
 
         self.pixel_color_label = self._create_pixel_color_and_coordinates_widget()
+        self.pixel_color_label.setFont(QFont("Monospace", pointSize=10))
 
         grid.addWidget(input_label, 0, 0)
         grid.addWidget(self.input_canvas, 1, 0)
@@ -191,7 +192,8 @@ class MainWindow(QMainWindow):
     # Feature: Display pixel details when the mouse pointer is over a pixel
     def _set_mouse_tracking_to_show_pixel_details(self, element: QLabel) -> None:
         element.setMouseTracking(True)
-        element.mouseMoveEvent = self._display_pixel_color_and_coordinates
+        inform_canvas = lambda e: self._display_pixel_color_and_coordinates(e, element)
+        element.mouseMoveEvent = inform_canvas
 
     def _create_pixel_color_and_coordinates_widget(self) -> QLabel:
         widget = QLabel()
@@ -199,22 +201,26 @@ class MainWindow(QMainWindow):
         widget.setFixedSize(120, 60)
         return widget
 
-    def _display_pixel_color_and_coordinates(self, event: QMouseEvent) -> None:
-        x, y, color = self._get_pixel_coordinates_and_color(event)
-        self._display_new_pixel_color(color)
-        self._display_new_pixel_coordinates(x, y)
+    def _display_pixel_color_and_coordinates(
+        self, event: QMouseEvent, canvas: QLabel
+    ) -> None:
+        x, y, color = self._get_pixel_coordinates_and_color(event, canvas)
+        self._paint_new_pixel_color(color)
+        self._display_new_pixel_color_info(x, y, color)
 
-    def _display_new_pixel_coordinates(self, x: int, y: int) -> None:
-        self.pixel_color_label.setText(f"({x}, {y})")
+    def _display_new_pixel_color_info(self, x: int, y: int, color) -> None:
+        self.pixel_color_label.setText(
+            f"({x }, {y})\n\n" f"rgb({color[0]}, {color[1]}, {color[2]})"
+        )
 
-    def _display_new_pixel_color(self, color: tuple[int, int, int]) -> None:
+    def _paint_new_pixel_color(self, color: tuple[int, int, int]) -> None:
         r, g, b = color
         text_color = self._get_contrast_color(color)
         self.pixel_color_label.setStyleSheet(
-            f"background-color: rgb({r}, {g}, {b}); \
-              color: {text_color}; \
-              border: 1px solid transparent; \
-              border-radius: 10px;"
+            f"background-color: rgb({r}, {g}, {b});"
+            f"color: {text_color};"
+            f"border: 1px solid transparent;"
+            f"border-radius: 10px;"
         )
 
     def _get_contrast_color(self, bg_color: tuple[int, int, int]) -> str:
