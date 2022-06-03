@@ -271,7 +271,10 @@ class Filters:
             for y in range(h):
                 new_pixel = self._sobel_pixel(x, y, vertical, horizontal)
                 image.setPixel(x, y, new_pixel)
-        return image
+
+        self.img = image
+        normalized_img = self.normalize()
+        return normalized_img
 
     def _sobel_pixel(self, x: int, y: int, vertical: QImage, horizontal: QImage):
         vertical = vertical.pixel(x, y)
@@ -283,9 +286,14 @@ class Filters:
 
     def laplace(self) -> QImage:
         mask = np.array([[-1, -1, -1], [-1, 8, -1], [-1, -1, -1]]) / np.float64(8)
+        # mask = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]]) / np.float64(4)
         if not self.img.isGrayscale():
             self.img = self.grayscale()
-        return self.apply_convolution(mask)
+
+        laplacian = self.apply_convolution(mask)
+        self.img = laplacian
+        normalized_img = self.normalize()
+        return normalized_img
 
     def resize_nearest_neighbor(self, w: int, h: int) -> QImage:
         image = self._create_new_image(w, h)
