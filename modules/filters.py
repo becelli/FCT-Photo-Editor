@@ -211,6 +211,40 @@ class Filters:
         new_pixel = get_color_integer_from_gray(new_color)
         return new_pixel
 
+    def normalize(self) -> QImage:
+        w, h, image = self._get_default_elements_to_filters()
+        f = lambda fn: ([fn(self.img.pixel(x, y)) for x in range(w) for y in range(h)])
+        pixels, mode = None, None
+        if self.img.isGrayscale():
+            pixels = f(get_gray_from_color_integer)
+            min_, max_ = min(pixels), max(pixels)
+            mode = self._get_normalized_gray_pixel
+        else:
+            pixels = f(get_rgb_from_color_integer)
+            min_, max_ = np.min(pixels, axis=0), np.max(pixels, axis=0)
+            mode = self._get_normalized_colored_pixel
+
+        for x in range(w):
+            for y in range(h):
+                pixel = pixels[x * h + y]
+                new_pixel = mode(pixel, min_, max_)
+                image.setPixel(x, y, new_pixel)
+
+        return image
+
+    def _get_normalized_gray_pixel(self, pixel, min_, max_):
+
+        norm = int(255 * (pixel - min_) / (max_ - min_))
+        pixel_color = get_color_integer_from_gray(norm)
+        return pixel_color
+
+    def _get_normalized_colored_pixel(self, pixel, min_, max_):
+        # fmt: off
+        norm = tuple(int(255 * (pixel[i] - min_[i]) / (max_[i] - min_[i] +0) ) for i in range(3))
+        pixel_color = get_color_integer_from_rgb(*norm)
+        return pixel_color
+        # fmt: on
+
     def _dynamic_compression_colored_pixel(
         self, x: int, y: int, c: float = 1, gama: float = 1
     ) -> QImage:

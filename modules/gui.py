@@ -261,6 +261,8 @@ class MainWindow(QMainWindow):
                 output = f.limiarization(t=127)
             case "resize":
                 output = f.resize_nearest_neighbor(w=2 * 320, h=2 * 240)
+            case "normalize":
+                output = f.normalize()
             case _:
                 pass
 
@@ -368,6 +370,7 @@ class MainWindow(QMainWindow):
             MenuAction("Laplacian", lambda: f("laplacian"), "F10"),
             MenuAction("Limiarization", lambda: f("limiarization"), "F11"),
             MenuAction("Resize", lambda: f("resize"), "F12"),
+            MenuAction("Normalize", lambda: f("normalize"), "Ctrl+N"),
         )
         self._add_actions_to_generic_menu(filters_menu, filters)
 
