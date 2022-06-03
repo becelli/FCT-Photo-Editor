@@ -34,9 +34,10 @@ class QObjects:
     def _fill_rgb_gradient(image: QImage, width: int, height: int) -> None:
         color = QColor()
         x_ratio = 360 / width  # 360º of the color spectrum (HSL representation)
+        bright_ratio = 255 / height
         for x in range(width):
             for y in range(height):
-                color.setHsl(int(x * x_ratio), 255, 128)
+                color.setHsl(int(x * x_ratio), 255, int((height - y) * bright_ratio))
                 image.setPixel(x, y, color.rgb())
 
     @staticmethod
