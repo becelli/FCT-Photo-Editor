@@ -23,7 +23,6 @@ from modules.functions import (
     get_gray_from_color_integer,
     get_rgb_from_color_integer,
 )
-from modules.statemanager import StateManager, CanvasState
 from modules.qt_override import (
     QGrid,
     QObjects,
@@ -69,7 +68,6 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.window_dimensions = (750, 330)
-        self.app_state = StateManager(max_states=64)
         self.input_canvas: QLabel = QLabel()
         self.output_canvas: QLabel = QLabel()
         self.initUI()
@@ -278,17 +276,9 @@ class MainWindow(QMainWindow):
     def _apply_output_to_input_canvas(self):
         pixmap = get_pixmap_from_canvas(self.output_canvas)
         put_pixmap_on_canvas(self.input_canvas, pixmap)
-        self._add_current_canvas_to_history()
 
     def _update_output_canvas(self, new_image: QImage):
         put_image_on_canvas(self.output_canvas, new_image)
-        self._add_current_canvas_to_history()
-
-    def _add_current_canvas_to_history(self):
-        pass
-        # input_pixmap = get_pixmap_from_canvas(self.input_canvas)
-        # output_pixmap = get_pixmap_from_canvas(self.output_canvas)
-        # # self.app_state.add(CanvasState(input_pixmap, output_pixmap))
 
     # Qt Manipulations
     def _create_canvas(
@@ -327,7 +317,6 @@ class MainWindow(QMainWindow):
     def _add_menus_to_menubar(self, menubar) -> None:
         menus = (
             MenuAction("File", self._add_actions_to_file_menu),
-            MenuAction("Edit", self._add_actions_to_edit_menu),
             MenuAction("Filters", self._add_actions_to_filters_menu),
             MenuAction("Tools", self._add_actions_to_tools_menu),
         )
@@ -343,13 +332,6 @@ class MainWindow(QMainWindow):
             MenuAction("Exit", self.close, "CTRL+Q", "Exit the application"),
         )
         self._add_actions_to_generic_menu(file_menu, actions)
-
-    def _add_actions_to_edit_menu(self, edit_menu):
-        actions = (
-            MenuAction("Undo", self.undo, "Ctrl+Z", "Undo the last action"),
-            MenuAction("Redo", self.redo, "Ctrl+Shift+Z", "Redo the last action"),
-        )
-        self._add_actions_to_generic_menu(edit_menu, actions)
 
     def _add_actions_to_tools_menu(self, tools_menu):
         color_converter = lambda: ColorConverter(self).show_rgb_and_hsl_converter()
@@ -386,22 +368,6 @@ class MainWindow(QMainWindow):
             act = self._add_submenu(name, func, shortcut, tooltip)
             # Adding is safe when any of the above parameters is None.
             menu.addAction(act)
-
-    # State management
-    def undo(self):
-        state = self.app_state.prev()
-        self._update_state_of_canvas(state)
-
-    def redo(self):
-        state = self.app_state.next()
-        self._update_state_of_canvas(state)
-
-    def _update_state_of_canvas(self, state: CanvasState):
-        if state:
-            if state.input:
-                put_pixmap_on_canvas(self.input_canvas, state.input)
-            if state.output:
-                put_pixmap_on_canvas(self.output_canvas, state.output)
 
     # File management
     def open_image(self):
