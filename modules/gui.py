@@ -240,38 +240,124 @@ class MainWindow(QMainWindow):
     def _apply_filter_to_input_image(self, filter: str) -> None:
         f = Filters(get_image_from_canvas(self.input_canvas))
         output = None
-        match filter:
-            case "grayscale":
-                output = f.grayscale()
-            case "equalize":
-                output = f.equalize()
-            case "negative":
-                output = f.negative()
-            case "binarize":
-                output = f.binarize()
-            case "mean":
-                output = f.mean(n=3)
-            case "median":
-                output = f.median(n=3)
-            case "salt_and_pepper":
-                output = f.salt_and_pepper(amount=10)
-            case "dynamic_compression":
-                output = f.dynamic_compression(c=1, gama=1)
-            case "sobel":
-                output = f.sobel()
-            case "laplacian":
-                output = f.laplace()
-            case "limiarization":
-                output = f.limiarization(t=127)
-            case "resize":
-                output = f.resize_nearest_neighbor(w=2 * 320, h=2 * 240)
-            case "normalize":
-                output = f.normalize()
-            case _:
-                pass
+        if filter == "grayscale":
+            output = f.grayscale()
+        elif filter == "equalize":
+            output = f.equalize()
+        elif filter == "negative":
+            output = f.negative()
+        elif filter == "binarize":
+            output = f.binarize()
+        elif filter == "mean":
+            output = self._try_to_apply_mean_filter(f)
+        elif filter == "median":
+            output = self._try_to_apply_median_filter(f)
+        elif filter == "salt_and_pepper":
+            output = self._try_to_apply_salt_and_pepper_filter(f)
+        elif filter == "dynamic_compression":
+            output = self._try_to_apply_dynamic_compression_filter(f)
+        elif filter == "sobel":
+            output = f.sobel()
+        elif filter == "sobel_magnitudes":
+            self.display_sobel_magnitudes_filter(f)
+        elif filter == "laplacian":
+            output = f.laplace()
+        elif filter == "limiarization":
+            output = self._try_to_apply_limiarization_filter(f)
+        elif filter == "resize":
+            output = self._try_to_apply_resize_filter(f)
+        elif filter == "normalize":
+            output = f.normalize()
+
+        else:
+            pass
 
         if output:
             self._update_output_canvas(output)
+
+    def _try_to_apply_mean_filter(self, filtertool: Filters) -> QImage:
+        size = self._display_mean_and_median_filter_size_chooser()
+        size = size + 1 if size % 2 == 0 else size
+        if size >= 3:
+            return filtertool.mean(size)
+        return None
+
+    def _try_to_apply_median_filter(self, filtertool: Filters) -> QImage:
+        size = self._display_mean_and_median_filter_size_chooser()
+        if size >= 3:
+            return filtertool.median(size)
+        return None
+
+    def _display_mean_and_median_filter_size_chooser(self) -> int:
+        return display_int_input_dialog("Filter size", 3, 100, 3)
+
+    def _try_to_apply_salt_and_pepper_filter(self, filtertool: Filters) -> QImage:
+        size = self._display_salt_and_pepper_filter_size_chooser()
+        if size >= 1:
+            return filtertool.salt_and_pepper(size)
+        return None
+
+    def _display_salt_and_pepper_filter_size_chooser(self) -> int:
+        return display_int_input_dialog("Percentage of noise", 1, 100, 10)
+
+    def _try_to_apply_dynamic_compression_filter(self, filtertool: Filters) -> QImage:
+        c, gama = self._display_dynamic_compression_filter_parameters()
+        if c >= 0 and gama >= 0:
+            return filtertool.dynamic_compression(c, gama)
+        return None
+
+    def _display_dynamic_compression_filter_parameters(self) -> tuple[int, int]:
+        constant = display_float_input_dialog("Constant c", 0, 100, 1)
+        gamma = display_float_input_dialog("Gama", 0, 3, 0.8)
+        return constant, gamma
+
+    def _try_to_apply_limiarization_filter(self, filtertool: Filters) -> QImage:
+        limiar = self._display_limiarization_filter_parameter()
+        if limiar >= 0:
+            return filtertool.limiarization(limiar)
+        return None
+
+    def _display_limiarization_filter_parameter(self) -> int:
+        return display_int_input_dialog("Limiar", 0, 255, 127)
+
+    def _try_to_apply_resize_filter(self, f: Filters) -> QImage:
+        w, h = self._display_resize_filter_parameters()
+        if w >= 1 and h >= 1:
+            return f.resize_nearest_neighbor(w, h)
+        return None
+
+    def _display_resize_filter_parameters(self) -> tuple[int, int]:
+        w = display_int_input_dialog("Width", 1, 10000, 640)
+        h = display_int_input_dialog("Height", 1, 10000, 480)
+        return w, h
+
+    def display_sobel_magnitudes_filter(self, f: Filters) -> None:
+        images = f.sobel_magnitudes()
+        names = ["XY", "X", "Y"]
+        w, h = images[0].width(), images[0].height()
+
+        window, grid, font = self._create_sobel_magnitude_window_toolset(w, h)
+
+        grid.setColumnStretch(0, 1)
+        display_grid_on_window(window, grid)
+        self._add_sobel_images_to_grid(images, names, grid, font)
+
+        window.show()
+
+    def _create_sobel_magnitude_window_toolset(self, w, h):
+        window = QChildWindow(self, "Sobel Magnitudes", 3 * w, int(h * 1.1))
+        grid = QGrid(window)
+        grid.setSpacing(3)
+        font = QFont("Monospace", 12)
+        return window, grid, font
+
+    def _add_sobel_images_to_grid(self, images, labels, grid, font):
+        for i, image in enumerate(images):
+            name = f"{labels[i]}"
+            grid.addWidget(QLabel(name, font=font), 0, i)
+            canvas = QLabel()
+            put_image_on_canvas(canvas, image)
+            grid.addWidget(canvas, 1, i)
 
     def _apply_output_to_input_canvas(self):
         pixmap = get_pixmap_from_canvas(self.output_canvas)

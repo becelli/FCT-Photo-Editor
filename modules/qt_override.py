@@ -5,13 +5,16 @@ from PyQt5.QtWidgets import (
     QFileDialog,
     QMainWindow,
     QPushButton,
+    QInputDialog,
 )
 from PyQt5.QtGui import QPixmap, QImage, QColor
 from PyQt5.QtCore import Qt
 
 
 class QGrid(QGridLayout):
-    def __init__(self):
+    def __init__(self, window=None):
+        if window is None:
+            super().__init__(window)
         super().__init__()
         self.setSpacing(0)
         self.setContentsMargins(0, 0, 0, 0)

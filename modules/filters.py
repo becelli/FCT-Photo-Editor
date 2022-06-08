@@ -266,6 +266,25 @@ class Filters:
         normalized_img = self.normalize()
         return normalized_img
 
+    def sobel_magnitudes(self) -> tuple[QImage, QImage, QImage]:
+        kernelY = np.array([[-1, -2, -1], [0, 0, 0], [1, 2, 1]]) / np.float64(4)
+        kernelX = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]) / np.float64(4)
+
+        if not self.img.isGrayscale():
+            self.img = self.grayscale()
+
+        vertical = self.apply_convolution(kernelY)
+        horizontal = self.apply_convolution(kernelX)
+        w, h = vertical.width(), vertical.height()
+        image = QImage(w, h, QImage.Format_RGB32)
+
+        for x in range(w):
+            for y in range(h):
+                new_pixel = self._sobel_pixel(x, y, vertical, horizontal)
+                image.setPixel(x, y, new_pixel)
+
+        return image, vertical, horizontal
+
     def _sobel_pixel(self, x: int, y: int, vertical: QImage, horizontal: QImage):
         vertical = vertical.pixel(x, y)
         horizontal = horizontal.pixel(x, y)
