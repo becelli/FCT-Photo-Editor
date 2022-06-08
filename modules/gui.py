@@ -35,6 +35,8 @@ from modules.qt_override import (
     get_pixmap_from_image,
     put_image_on_canvas,
     put_pixmap_on_canvas,
+    display_int_input_dialog,
+    display_float_input_dialog,
 )
 import numpy as np
 
@@ -101,10 +103,10 @@ class MainWindow(QMainWindow):
         # will be hidden to this function.
         grid = QGrid()
 
-        input_label, self.input_canvas = self._create_canvas("Entrada")
+        input_label, self.input_canvas = self._create_canvas("Input")
         self._set_mouse_tracking_to_show_pixel_details(self.input_canvas)
 
-        output_label, self.output_canvas = self._create_canvas("Saída")
+        output_label, self.output_canvas = self._create_canvas("Output")
         self._set_mouse_tracking_to_show_pixel_details(self.output_canvas)
 
         apply_changes_button = self._create_apply_changes_button()
@@ -433,18 +435,19 @@ class MainWindow(QMainWindow):
         f = lambda filter: self._apply_filter_to_input_image(filter)
         filters = (
             MenuAction("Grayscale", lambda: f("grayscale"), "F1"),
-            MenuAction("Equalize", lambda: f("equalize"), "F2"),
-            MenuAction("Negative", lambda: f("negative"), "F3"),
-            MenuAction("Binarize", lambda: f("binarize"), "F4"),
-            MenuAction("Salt and Pepper", lambda: f("salt_and_pepper"), "F5"),
-            MenuAction("Mean", lambda: f("mean"), "F6"),
-            MenuAction("Median", lambda: f("median"), "F7"),
-            MenuAction("Dynamic Compression", lambda: f("dynamic_compression"), "F8"),
-            MenuAction("Sobel", lambda: f("sobel"), "F9"),
-            MenuAction("Laplacian", lambda: f("laplacian"), "F10"),
-            MenuAction("Limiarization", lambda: f("limiarization"), "F11"),
-            MenuAction("Resize", lambda: f("resize"), "F12"),
-            MenuAction("Normalize", lambda: f("normalize"), "Ctrl+N"),
+            MenuAction("Normalize", lambda: f("normalize"), "F2"),
+            MenuAction("Equalize", lambda: f("equalize"), "F3"),
+            MenuAction("Negative", lambda: f("negative"), "F4"),
+            MenuAction("Binarize", lambda: f("binarize"), "F5"),
+            MenuAction("Dyn. Compress.", lambda: f("dynamic_compression"), "F6"),
+            MenuAction("Mean", lambda: f("mean"), "F7"),
+            MenuAction("Median", lambda: f("median"), "F8"),
+            MenuAction("Laplacian", lambda: f("laplacian"), "F9"),
+            MenuAction("Limiarization", lambda: f("limiarization"), "F10"),
+            MenuAction("Sobel", lambda: f("sobel"), "F11"),
+            MenuAction("Sobel Magnitudes", lambda: f("sobel_magnitudes"), "F12"),
+            MenuAction("Salt and Pepper", lambda: f("salt_and_pepper"), "Ctrl+F1"),
+            MenuAction("Resize", lambda: f("resize"), "Ctrl+F2"),
         )
         self._add_actions_to_generic_menu(filters_menu, filters)
 

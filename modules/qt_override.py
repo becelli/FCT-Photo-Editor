@@ -120,3 +120,47 @@ def put_pixmap_on_canvas(canvas: QLabel, pixmap: QPixmap) -> None:
 
 def put_image_on_canvas(canvas: QLabel, image: QImage) -> None:
     canvas.setPixmap(QPixmap.fromImage(image))
+
+
+def display_int_input_dialog(
+    title: str, low: int, high: int, default: int = None
+) -> int:
+    dialog = QInputDialog()
+    dialog.setWindowTitle(title)
+    dialog.setLabelText("Enter a number:")
+    dialog.setInputMode(QInputDialog.InputMode.IntInput)
+    dialog.setIntRange(low, high)
+
+    if default:
+        dialog.setIntValue(default)
+    else:
+        dialog.setIntValue(low)
+
+    dialog.setCancelButtonText("Cancel")
+    dialog.setOkButtonText("Ok")
+    dialog.exec_()
+    if dialog.result() == QInputDialog.DialogCode.Accepted:
+        return dialog.intValue()
+    return -1
+
+
+def display_float_input_dialog(
+    title: str, low: float, high: float, default: float = None
+) -> int:
+    dialog = QInputDialog()
+    dialog.setWindowTitle(title)
+    dialog.setLabelText("Enter a number:")
+    dialog.setInputMode(QInputDialog.InputMode.DoubleInput)
+    dialog.setDoubleRange(low, high)
+
+    if default:
+        dialog.setDoubleValue(default)
+    else:
+        dialog.setDoubleValue(low)
+
+    dialog.setCancelButtonText("Cancel")
+    dialog.setOkButtonText("Ok")
+    dialog.exec_()
+    if dialog.result() == QInputDialog.DialogCode.Accepted:
+        return dialog.doubleValue()
+    return -1
