@@ -79,12 +79,11 @@ def get_color_integer_from_color_name(color_name: str, color_integer: int) -> in
     """
     Get a color integer from a color name.
     """
-    match color_name:
-        case "red":
-            return color_integer & 0xFF0000
-        case "green":
-            return color_integer & 0x00FF00
-        case "blue":
-            return color_integer & 0x0000FF
-        case _:
-            return color_integer
+    if color_name == "red":
+        return color_integer & 0xFF0000
+    elif color_name == "green":
+        return color_integer & 0x00FF00
+    elif color_name == "blue":
+        return color_integer & 0x0000FF
+    else:
+        return color_integer
