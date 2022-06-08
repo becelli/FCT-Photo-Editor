@@ -1,4 +1,3 @@
-# Import QImage and QPixmap
 from PyQt5.QtGui import QImage
 import numpy as np
 from modules.functions import (
@@ -141,34 +140,18 @@ class Filters:
         return image
 
     def mean(self, n: int = 3) -> QImage:
-        # mask = np.ones((n, n)) / np.float64(n * n)
-        mask = np.array(
-            [
-                [1, 1, 1],
-                [1, 1, 1],
-                [1, 1, 1],
-                [1, 1, 1],
-                [1, 1, 1],
-                [1, 1, 1],
-                [1, 1, 1],
-                [1, 1, 1],
-                [1, 1, 1],
-            ]
-        )
-        mask = mask / np.float(mask.shape[0] * mask.shape[1])
+        mask = np.ones((n, n)) / np.float64(n * n)
         pixmap = self.apply_convolution(mask)
         return pixmap
 
     def median(self, n: int = 3) -> QImage:
-        """
-        Blurs an img.
-        """
         a, b = n, n
         pa, pb = a // 2, b // 2
         w, h = self.img.width() - a + 1, self.img.height() - b + 1
         image = QImage(w, h, QImage.Format_RGB32)
         isGray = self.img.isGrayscale()
         f = self._median_gray_pixel if isGray else self._median_colored_pixel
+
         for x in range(w):
             for y in range(h):
                 new_pixel = int(f(x + pa, y + pb, (a, b)))
@@ -211,19 +194,27 @@ class Filters:
         new_pixel = get_color_integer_from_gray(new_color)
         return new_pixel
 
-    def normalize(self) -> QImage:
-        w, h, image = self._get_default_elements_to_filters()
-        f = lambda fn: ([fn(self.img.pixel(x, y)) for x in range(w) for y in range(h)])
-        pixels, mode = None, None
+    def normalize(self, pixels=None) -> QImage:
+        w, h = self.img.width(), self.img.height()
+        image_to_use = lambda x, y: self.img.pixel(x, y)
+
+        if pixels is not None:
+            image_to_use = lambda x, y: pixels[x * h + y]
+            w, h = pixels.shape[0], pixels.shape[1]
+            pixels = pixels.reshape(w * h).astype(int)
+
+        min_, max_, mode = None, None, None
+        f = lambda fn, img: ([fn(int(img(x, y))) for x in range(w) for y in range(h)])
         if self.img.isGrayscale():
-            pixels = f(get_gray_from_color_integer)
+            pixels = f(get_gray_from_color_integer, image_to_use)
             min_, max_ = min(pixels), max(pixels)
             mode = self._get_normalized_gray_pixel
         else:
-            pixels = f(get_rgb_from_color_integer)
+            pixels = f(get_rgb_from_color_integer, image_to_use)
             min_, max_ = np.min(pixels, axis=0), np.max(pixels, axis=0)
             mode = self._get_normalized_colored_pixel
 
+        image = QImage(w, h, QImage.Format_RGB32)
         for x in range(w):
             for y in range(h):
                 pixel = pixels[x * h + y]
@@ -233,14 +224,13 @@ class Filters:
         return image
 
     def _get_normalized_gray_pixel(self, pixel, min_, max_):
-
         norm = int(255 * (pixel - min_) / (max_ - min_))
         pixel_color = get_color_integer_from_gray(norm)
         return pixel_color
 
     def _get_normalized_colored_pixel(self, pixel, min_, max_):
         # fmt: off
-        norm = tuple(int(255 * (pixel[i] - min_[i]) / (max_[i] - min_[i] +0) ) for i in range(3))
+        norm = tuple(int(255 * (pixel[i] - min_[i]) / (max_[i] - min_[i])) for i in range(3))
         pixel_color = get_color_integer_from_rgb(*norm)
         return pixel_color
         # fmt: on
@@ -285,8 +275,8 @@ class Filters:
         return get_color_integer_from_gray(c)
 
     def laplace(self) -> QImage:
-        mask = np.array([[-1, -1, -1], [-1, 8, -1], [-1, -1, -1]]) / np.float64(8)
-        # mask = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]]) / np.float64(4)
+        # mask = np.array([[-1, -1, -1], [-1, 9, -1], [-1, -1, -1]]) / np.float64(8)
+        mask = np.array([[0, -1, 0], [-1, 4, -1], [0, -1, 0]]) / np.float64(4)
         if not self.img.isGrayscale():
             self.img = self.grayscale()
 
@@ -347,18 +337,19 @@ class Filters:
         a, b = mask.shape
         pa, pb = a // 2, b // 2
         w, h = self.img.width() - a + 1, self.img.height() - b + 1
-        image = QImage(w, h, QImage.Format_RGB32)
+        isGray = self.img.isGrayscale()
         f = (
             self._apply_convolution_gray_pixel
-            if self.img.isGrayscale()
+            if isGray
             else self._apply_convolution_colored_pixel
         )
-
+        image = self._create_new_image(w, h)
         for x in range(w):
             for y in range(h):
-                new_pixel = int(f(x, y, mask, pa, pb, a, b))
+                new_pixel = f(x, y, mask, pa, pb, a, b)
                 image.setPixel(x, y, new_pixel)
 
+        # normalized_img = self.normalize(pixels)
         return image
 
     def _apply_convolution_gray_pixel(
@@ -376,6 +367,7 @@ class Filters:
         self, x: int, y: int, mask: np.ndarray, pa: int, pb: int, a: int, b: int
     ) -> QImage:
         tmp = np.zeros(3)
+        size = (a, b)
         area = self.get_pixel_area_colored(x + pa, y + pb, (a, b))
         for i in range(a):
             for j in range(b):
