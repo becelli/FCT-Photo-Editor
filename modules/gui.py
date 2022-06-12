@@ -16,6 +16,7 @@ from PyQt5.QtGui import (
     QMouseEvent,
 )
 from PyQt5.QtCore import Qt
+from modules import frequency_domain
 from modules.filters import Filters
 from modules.color_converter import ColorConverter
 from modules.functions import (
@@ -24,6 +25,7 @@ from modules.functions import (
     get_gray_from_color_integer,
     get_rgb_from_color_integer,
 )
+from modules.frequency_domain import FrequencyDomain
 from modules.qt_override import (
     QGrid,
     QObjects,
@@ -466,7 +468,12 @@ class MainWindow(QMainWindow):
     def open_image(self):
         filename = QDialogs().get_open_path()
         if filename:
-            pixmap = QPixmap(filename).scaled(320, 240)
+            pixmap = QPixmap(filename)
+            # if is a square image, resize it to the canvas size
+            if pixmap.width() == pixmap.height():
+                pixmap = pixmap.scaled(240, 240)
+            else:
+                pixmap = pixmap.scaled(320, 240)
             put_pixmap_on_canvas(self.input_canvas, pixmap)
 
     def save_image(self):
