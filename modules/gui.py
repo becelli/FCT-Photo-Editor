@@ -139,14 +139,18 @@ class MainWindow(QMainWindow):
     def _calculate_image_histogram(self) -> tuple[np.ndarray, np.ndarray]:
         gray_image = self._get_gray_image()
         image_pixels = self._get_array_of_pixels_from_image(gray_image)
-        hist, bins = np.histogram(image_pixels, bins=256, range=(0, 255))
+        hist, bins = np.histogram(image_pixels, bins=255, range=(0, 255))
         hist = hist / np.max(hist)  # Normalizing
         return hist, bins
 
     def _get_array_of_pixels_from_image(self, image: QImage) -> np.ndarray:
-        width, height = image.width(), image.height()
-        image_pixels_array = image.bits().asarray(width * height)
-        return image_pixels_array
+        w, h = image.width(), image.height()
+        pixels = np.zeros((w, h))
+        for x in range(w):
+            for y in range(h):
+                pixel = image.pixel(x, y)
+                pixels[x, y] = get_gray_from_color_integer(pixel)
+        return pixels
 
     def _get_gray_image(self) -> QImage:
         f = Filters(img=get_image_from_canvas(self.input_canvas))
