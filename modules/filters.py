@@ -365,10 +365,9 @@ class Filters:
         image = self._create_new_image(w, h)
         for x in range(w):
             for y in range(h):
-                new_pixel = f(x, y, mask, pa, pb, a, b)
+                new_pixel = int(f(x, y, mask, pa, pb, a, b))
                 image.setPixel(x, y, new_pixel)
 
-        # normalized_img = self.normalize(pixels)
         return image
 
     def _apply_convolution_gray_pixel(
@@ -379,7 +378,7 @@ class Filters:
         for i in range(a):
             for j in range(b):
                 tmp += area[j * 3 + i] * mask[i][j]
-        new_color = np.round(np.abs(tmp), 0).astype(np.uint8)
+        new_color = int(np.round(np.abs(tmp), 0))
         return get_color_integer_from_gray(new_color)
 
     def _apply_convolution_colored_pixel(
