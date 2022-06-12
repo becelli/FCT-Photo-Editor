@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import sys
 from PyQt5.QtWidgets import (
     QApplication,
@@ -127,7 +128,6 @@ class MainWindow(QMainWindow):
 
     # Feature: Display the histogram of the input image
     def display_histogram(self) -> None:
-        import matplotlib.pyplot as plt
 
         hist, bins = self._calculate_image_histogram()
         plt.bar(bins[:-1], hist, width=2, color="black")
@@ -422,12 +422,16 @@ class MainWindow(QMainWindow):
         self._add_actions_to_generic_menu(file_menu, actions)
 
     def _add_actions_to_tools_menu(self, tools_menu):
-        color_converter = lambda: ColorConverter(self).show_rgb_and_hsl_converter()
+        display_color_converter = lambda: ColorConverter(self)
+        display_frequency_domain = lambda: FrequencyDomain(
+            self, image=get_image_from_canvas(self.input_canvas)
+        )
         # Declaring here to do not break identation.
         actions = (
             MenuAction("Histogram", self.display_histogram, "Ctrl+H"),
             MenuAction("Channels", self.display_color_channels, "Ctrl+C"),
-            MenuAction("RGB to HSL", color_converter, "Ctrl+R"),
+            MenuAction("Color Converter", display_color_converter, "Ctrl+R"),
+            MenuAction("Frequency Domain", display_frequency_domain, "Ctrl+F"),
         )
         self._add_actions_to_generic_menu(tools_menu, actions)
 

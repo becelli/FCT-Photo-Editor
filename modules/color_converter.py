@@ -9,6 +9,7 @@ class ColorConverter:
         self.parent = parent
         self.r_c, self.g_c, self.b_c = 255, 255, 255
         self.h_c, self.s_c, self.l_c = 239, 240, 240
+        self.show_rgb_and_hsl_converter()
 
     def _convert_rgb_to_hsl(self, r: int, g: int, b: int) -> None:
         """
