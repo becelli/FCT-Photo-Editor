@@ -246,8 +246,8 @@ class Filters:
         return new_pixel
 
     def sobel(self) -> QImage:
-        kernelY = np.array([[-1, -2, -1], [0, 0, 0], [1, 2, 1]]) / np.float64(4)
         kernelX = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]) / np.float64(4)
+        kernelY = np.array([[-1, -2, -1], [0, 0, 0], [1, 2, 1]]) / np.float64(4)
 
         if not self.img.isGrayscale():
             self.img = self.grayscale()
