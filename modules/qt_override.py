@@ -146,7 +146,7 @@ def display_int_input_dialog(
 
 def display_float_input_dialog(
     title: str, low: float, high: float, default: float = None
-) -> int:
+) -> float:
     dialog = QInputDialog()
     dialog.setWindowTitle(title)
     dialog.setLabelText("Enter a number:")

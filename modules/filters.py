@@ -1,14 +1,10 @@
 from PyQt5.QtGui import QImage
 import numpy as np
 from modules.functions import (
-    get_blue_from_color_integer,
     get_color_integer_from_color_name,
     get_color_integer_from_gray,
     get_color_integer_from_rgb,
     get_gray_from_color_integer,
-    get_gray_from_rgb,
-    get_green_from_color_integer,
-    get_red_from_color_integer,
     get_rgb_from_color_integer,
 )
 
@@ -18,7 +14,7 @@ class Filters:
         self.img: QImage = img
 
     def _create_new_image(self, width=320, height=240):
-        image = QImage(width, height, QImage.Format_RGB32)
+        image = QImage(width, height, QImage.Format.Format_RGB32)
         return image
 
     def _get_default_elements_to_filters(self) -> tuple:
@@ -86,7 +82,7 @@ class Filters:
 
         w, h = self.img.width(), self.img.height()
         image = self.img.copy()
-        perc = amount * w * h // 100
+        perc = int(amount * w * h // 100)
 
         for _ in range(perc // 2):
             x1, y1 = randint(0, w - 1), randint(0, h - 1)
@@ -322,9 +318,7 @@ class Filters:
         return self.img.pixel(x_, y_)
 
     def limiarization(self, t: int = 160) -> QImage:
-        """
-        'Binarizes' an img at certain threshold.
-        """
+       #'Binarizes' an img at certain threshold.
         w, h, image = self._get_default_elements_to_filters()
         f = (
             self._limiarization_gray_pixel

@@ -113,12 +113,12 @@ class ColorConverter:
 
         rgb_label = QLabel("RGB")
         rgb_label.setFont(QFont("Arial", 12))
-        rgb_label.setAlignment(Qt.AlignCenter)
+        rgb_label.setAlignment(Qt.Alignment.AlignCenter)
         grid.addWidget(rgb_label, 0, 0, 1, 2)
 
         r_label = QLabel("R")
         r_label.setFont(QFont("Arial", 12))
-        r_label.setAlignment(Qt.AlignCenter)
+        r_label.setAlignment(Qt.Alignment.AlignCenter)
         grid.addWidget(r_label, 1, 0)
 
         self.r_input = QLineEdit()

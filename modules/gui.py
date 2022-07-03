@@ -33,9 +33,7 @@ from modules.qt_override import (
     QChildWindow,
     display_grid_on_window,
     get_image_from_canvas,
-    get_image_from_pixmap,
     get_pixmap_from_canvas,
-    get_pixmap_from_image,
     put_image_on_canvas,
     put_pixmap_on_canvas,
     display_int_input_dialog,
@@ -475,9 +473,9 @@ class MainWindow(QMainWindow):
             pixmap = QPixmap(filename)
             # if is a square image, resize it to the canvas size
             if pixmap.width() == pixmap.height():
-                pixmap = pixmap.scaled(240, 240)
+                pixmap = pixmap
             else:
-                pixmap = pixmap.scaled(320, 240)
+                pixmap = pixmap
             put_pixmap_on_canvas(self.input_canvas, pixmap)
 
     def save_image(self):
