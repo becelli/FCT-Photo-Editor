@@ -1,0 +1,17 @@
+[package]
+name = "libkayn"
+version = "0.1.0"
+authors = ["Gustavo Becelli"]
+edition = "2021"
+
+[lib]
+name = "libkayn"
+crate-type = ["cdylib"]
+
+[dependencies]
+rand = "^0.8.5"
+num_cpus = "^1.13.1"
+
+[dependencies.pyo3]
+version = "^0.16.5"
+features = ["extension-module"]

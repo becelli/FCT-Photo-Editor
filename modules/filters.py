@@ -7,6 +7,7 @@ from modules.functions import (
     get_gray_from_color_integer,
     get_rgb_from_color_integer,
 )
+import libkayn as kayn
 
 
 class Filters:
@@ -23,22 +24,13 @@ class Filters:
         return w, h, image
 
     def grayscale(self) -> QImage:
-        if self.img.isGrayscale():
-            return self.img
-
-        w, h, image = self._get_default_elements_to_filters()
-        for x in range(w):
-            for y in range(h):
-                new_pixel = self._gray_pixel_color(x, y)
-                image.setPixel(x, y, new_pixel)
-        return image
-
-    def _gray_pixel_color(self, x, y):
-        cur_pixel = self.img.pixel(x, y)
-        cur_color = get_rgb_from_color_integer(cur_pixel)
-        new_color = get_gray_from_rgb(*cur_color)
-        new_pixel = get_color_integer_from_gray(new_color)
-        return new_pixel
+        w, h, new_image = self._get_default_elements_to_filters()
+        image = np.array(self.img.bits().asarray(w * h * 4)).reshape(h * w, 4)[:, :3]
+        grayscaled = kayn.grayscale(image)
+        for y in range(h):
+            for x in range(w):
+                new_image.setPixel(x, y, grayscaled[x + y * w])
+        return new_image
 
     def get_channel(self, color: str) -> QImage:
         w, h, image = self._get_default_elements_to_filters()
@@ -50,26 +42,13 @@ class Filters:
         return image
 
     def negative(self) -> QImage:
-        pass
-        w, h, image = self._get_default_elements_to_filters()
-        isGray = self.img.isGrayscale()
-        filter = self._negative_gray_pixel if isGray else self._negative_colored_pixel
-        for x in range(w):
-            for y in range(h):
-                new_pixel = filter(x, y)
-                image.setPixel(x, y, new_pixel)
-        return image
-
-    def _negative_gray_pixel(self, x, y):
-        pixel = self.img.pixel(x, y)
-        gray = get_gray_from_color_integer(pixel)
-        new_gray = 255 - gray
-        return get_color_integer_from_gray(new_gray)
-
-    def _negative_colored_pixel(self, x, y):
-        pixel = self.img.pixel(x, y)
-        new_pixel = [255 - p for p in get_rgb_from_color_integer(pixel)]
-        return get_color_integer_from_rgb(*new_pixel)
+        w, h, new_image = self._get_default_elements_to_filters()
+        image = np.array(self.img.bits().asarray(w * h * 4)).reshape(h * w, 4)[:, :3]
+        negatived = kayn.negative(image)
+        for y in range(h):
+            for x in range(w):
+                new_image.setPixel(x, y, negatived[x + y * w])
+        return new_image
 
     def binarize(self) -> QImage:
         return self.limiarization(127)
@@ -136,33 +115,26 @@ class Filters:
         return image
 
     def mean(self, n: int = 3) -> QImage:
-        mask = np.ones((n, n)) / np.float64(n * n)
-        pixmap = self.apply_convolution(mask)
-        return pixmap
-
-    def median(self, n: int = 3) -> QImage:
-        a, b = n, n
-        pa, pb = a // 2, b // 2
-        w, h = self.img.width() - a + 1, self.img.height() - b + 1
-        image = QImage(w, h, QImage.Format_RGB32)
-        isGray = self.img.isGrayscale()
-        f = self._median_gray_pixel if isGray else self._median_colored_pixel
-
-        for x in range(w):
-            for y in range(h):
-                new_pixel = int(f(x + pa, y + pb, (a, b)))
-                image.setPixel(x, y, new_pixel)
+        mask = np.ones(n * n) / (n * n)
+        image = self.filter_NxN(mask)
         return image
 
-    def _median_gray_pixel(self, x, y, mask_size):
-        area = self.get_pixel_area_gray(x, y, mask_size)
-        median = np.median(area, axis=0).astype(np.uint8)
-        return get_color_integer_from_gray(median)
+    def median(self, n: int = 3) -> QImage:
+        n = n if n % 2 == 1 else n + 1
+        distance = int(n / 2)
+        w, h = self.img.width(), self.img.height()
 
-    def _median_colored_pixel(self, x, y, mask_size):
-        area = self.get_pixel_area_colored(x, y, mask_size)
-        median = np.median(area, axis=0).astype(np.uint8)
-        return get_color_integer_from_rgb(*median)
+        new_w, new_h = w - n + 1, h - n + 1
+        new_image = QImage(new_w, new_h, QImage.Format.Format_RGB32)
+
+        image = np.array(self.img.bits().asarray(w * h * 4)).reshape(h * w, 4)[:, :3]
+        median_img = kayn.median(image, distance, w, h)
+
+        for y in range(new_h):
+            for x in range(new_w):
+                new_image.setPixel(x, y, median_img[x + y * new_w])
+
+        return new_image
 
     def dynamic_compression(self, c: float = 1, gama: float = 1) -> QImage:
         w, h, image = self._get_default_elements_to_filters()
@@ -242,14 +214,14 @@ class Filters:
         return new_pixel
 
     def sobel(self) -> QImage:
-        kernelX = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]) / np.float64(4)
-        kernelY = np.array([[-1, -2, -1], [0, 0, 0], [1, 2, 1]]) / np.float64(4)
+        kernelX = np.array([-1, 0, 1, -2, 0, 2, -1, 0, 1]) / np.float64(4)
+        kernelY = np.array([-1, -2, -1, 0, 0, 0, 1, 2, 1]) / np.float64(4)
 
         if not self.img.isGrayscale():
             self.img = self.grayscale()
 
-        vertical = self.apply_convolution(kernelY)
-        horizontal = self.apply_convolution(kernelX)
+        vertical = self.filter_NxN(kernelY)
+        horizontal = self.filter_NxN(kernelX)
         w, h = vertical.width(), vertical.height()
         image = QImage(w, h, QImage.Format_RGB32)
 
@@ -263,14 +235,14 @@ class Filters:
         return normalized_img
 
     def sobel_magnitudes(self) -> tuple[QImage, QImage, QImage]:
-        kernelY = np.array([[-1, -2, -1], [0, 0, 0], [1, 2, 1]]) / np.float64(4)
-        kernelX = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]) / np.float64(4)
+        kernelY = np.array([-1, -2, -1, 0, 0, 0, 1, 2, 1]) / np.float64(4)
+        kernelX = np.array([-1, 0, 1, -2, 0, 2, -1, 0, 1]) / np.float64(4)
 
         if not self.img.isGrayscale():
             self.img = self.grayscale()
 
-        vertical = self.apply_convolution(kernelY)
-        horizontal = self.apply_convolution(kernelX)
+        vertical = self.filter_NxN(kernelY)
+        horizontal = self.filter_NxN(kernelX)
         w, h = vertical.width(), vertical.height()
         image = QImage(w, h, QImage.Format_RGB32)
 
@@ -290,13 +262,10 @@ class Filters:
         return get_color_integer_from_gray(c)
 
     def laplace(self) -> QImage:
-        # mask = np.array([[-1, -1, -1], [-1, 9, -1], [-1, -1, -1]]) / np.float64(8)
-        mask = np.array([[0, -1, 0], [-1, 4, -1], [0, -1, 0]]) / np.float64(4)
-        if not self.img.isGrayscale():
-            self.img = self.grayscale()
+        # mask = np.array([-1, -1, -1, -1, 9, -1,-1, -1, -1]) / np.float64(8)
+        mask = np.array([0, -1, 0, -1, 4, -1, 0, -1, 0]) / np.float64(4)
 
-        laplacian = self.apply_convolution(mask)
-        self.img = laplacian
+        self.img = self.filter_NxN(mask)
         normalized_img = self.normalize()
         return normalized_img
 
@@ -346,128 +315,48 @@ class Filters:
         r, g, b = 255 if r > t else 0, 255 if g > t else 0, 255 if b > t else 0
         return get_color_integer_from_rgb(r, g, b)
 
-    def apply_convolution(self, mask: np.ndarray) -> QImage:
-        a, b = mask.shape
-        pa, pb = a // 2, b // 2
-        w, h = self.img.width() - a + 1, self.img.height() - b + 1
-        isGray = self.img.isGrayscale()
-        f = (
-            self._apply_convolution_gray_pixel
-            if isGray
-            else self._apply_convolution_colored_pixel
-        )
-        image = self._create_new_image(w, h)
-        for x in range(w):
-            for y in range(h):
-                new_pixel = int(f(x, y, mask, pa, pb, a, b))
-                image.setPixel(x, y, new_pixel)
+    def filter_NxN(self, mask: np.ndarray) -> QImage:
+        w, h = self.img.width(), self.img.height()
+        f_size = mask.shape[0]
+        side = int(f_size**0.5)
 
-        return image
+        image = np.array(self.img.bits().asarray(w * h * 4)).reshape(h * w, 4)[:, :3]
+        filtered = kayn.filter_nxn(image, mask, w, h)
 
-    def _apply_convolution_gray_pixel(
-        self, x: int, y: int, mask: np.ndarray, pa: int, pb: int, a: int, b: int
-    ) -> QImage:
-        area = self.get_pixel_area_gray(x + pa, y + pb, (a, b))
-        tmp = np.float(0)
-        for i in range(a):
-            for j in range(b):
-                tmp += area[j * 3 + i] * mask[i][j]
-        new_color = int(np.round(np.abs(tmp), 0))
-        return get_color_integer_from_gray(new_color)
+        new_w, new_h = w - side + 1, h - side + 1
+        new_image = QImage(new_w, new_h, QImage.Format.Format_RGB32)
+        for x in range(new_w):
+            for y in range(new_h):
+                new_image.setPixel(x, y, filtered[x * new_h + y])
 
-    def _apply_convolution_colored_pixel(
-        self, x: int, y: int, mask: np.ndarray, pa: int, pb: int, a: int, b: int
-    ) -> QImage:
-        tmp = np.zeros(3)
-        size = (a, b)
-        area = self.get_pixel_area_colored(x + pa, y + pb, (a, b))
-        for i in range(a):
-            for j in range(b):
-                for k in range(3):
-                    tmp[k] += area[j * 3 + i][k] * mask[i][j]
-        new = np.round(np.abs(tmp), 0).astype(np.uint8)
-        return get_color_integer_from_rgb(*new)
+        return new_image
 
-    def get_pixel_area_colored(self, x, y, size) -> np.ndarray:
-        area = np.zeros((size[0] * size[1], 3))
-        f = get_rgb_from_color_integer
-        return self._get_pixel_area_generic(x, y, size, area, f)
-
-    def get_pixel_area_gray(self, x, y, size) -> np.ndarray:
-        area = np.zeros(size[0] * size[1])
-        f = get_gray_from_color_integer
-        return self._get_pixel_area_generic(x, y, size, area, f)
-
-    def _get_pixel_area_generic(self, x, y, size, area, f) -> np.ndarray:
-        a, b = size[0] // 2, size[1] // 2
-        it = 0
-        for i in range(x - a, x + a + 1):
-            for j in range(y - b, y + b + 1):
-                pixel = self.img.pixel(i, j)
-                area[it] = f(pixel)
-                it += 1
-        return area
-
-    def discrete_cousine_transform(self) -> QImage:
         """
-        Applies a discrete cosine transform to an image.
+        
+        def discrete_cousine_transform(self) -> QImage:
+        
+                w, h, image = self._get_default_elements_to_filters()
+                ci, cj, dctl, sum_ = 0.0, 0.0, 0.0, 0.0
+        
+                entry = np.ones((8, 8)) * np.int64(255)
+                result = np.zeros((8, 8))
+                w, h = 8, 8
+        
+                alpha = lambda u, n: np.sqrt(1 / n) if u == 0 else np.sqrt(2.0 / n)
+                for u in range(w):
+                    for v in range(h):
+                        ci = alpha(u, w)
+                        cj = alpha(v, h)
+                        sum_ = np.float(0)
+                        for x in range(w):
+                            for y in range(h):
+                                pixel = entry[x][y]
+        
+                                dctl = pixel
+                                dctl *= np.cos((2 * x + 1) * u * np.pi / (2.0 * w))
+                                dctl *= np.cos((2 * y + 1) * v * np.pi / (2.0 * h))
+                                sum_ += dctl
+        
+                        result[u][v] = sum_ * ci * cj
+        
         """
-
-        w, h, image = self._get_default_elements_to_filters()
-        ci, cj, dctl, sum_ = 0.0, 0.0, 0.0, 0.0
-
-        entry = np.ones((8, 8)) * np.int64(255)
-        result = np.zeros((8, 8))
-        w, h = 8, 8
-
-        alpha = lambda u, n: np.sqrt(1 / n) if u == 0 else np.sqrt(2.0 / n)
-        for u in range(w):
-            for v in range(h):
-                ci = alpha(u, w)
-                cj = alpha(v, h)
-                sum_ = np.float(0)
-                for x in range(w):
-                    for y in range(h):
-                        pixel = entry[x][y]
-
-                        dctl = pixel
-                        dctl *= np.cos((2 * x + 1) * u * np.pi / (2.0 * w))
-                        dctl *= np.cos((2 * y + 1) * v * np.pi / (2.0 * h))
-                        sum_ += dctl
-
-                result[u][v] = sum_ * ci * cj
-
-        self.inverse_discrete_cousine_transform(result)
-        # print(result)
-
-    def inverse_discrete_cousine_transform(self, matrix) -> QImage:
-        """
-        Applies an inverse discrete cosine transform to an image.
-        """
-        pi = 3.142857
-
-        w, h, image = self._get_default_elements_to_filters()
-        ci, cj, dct1, sum_ = 0.0, 0.0, 0.0, 0.0
-
-        entry = np.ones((8, 8)) * np.int64(255)
-        result = np.zeros((8, 8))
-        w, h = 8, 8
-
-        alpha = lambda u, n: np.sqrt(1 / n) if u == 0 else np.sqrt(2.0 / n)
-        for u in range(w):
-            for v in range(h):
-                ci = alpha(u, w)
-                cj = alpha(v, h)
-                sum_ = np.float(0)
-                for x in range(w):
-                    for y in range(h):
-                        pixel = entry[x][y]
-
-                        dct1 = pixel
-                        dct1 *= np.cos((2 * x + 1) * u * pi / (2.0 * w))
-                        dct1 *= np.cos((2 * y + 1) * v * pi / (2.0 * h))
-                        sum_ += dct1
-
-                result[u][v] = sum_ * ci * cj
-
-        print(result)
