@@ -21,17 +21,22 @@ fn filter_nxn(
     width: u32,
     height: u32,
 ) -> PyResult<Vec<ColorInt>> {
-    Ok(operations::_filter_nxn(
-        image as Vec<Pixel>,
-        filter,
-        width,
-        height,
-    ))
+    Ok(operations::filter_nxn(image, filter, width, height))
 }
 
 #[pyfunction]
 fn median(image: Vec<Pixel>, distance: u32, width: u32, height: u32) -> PyResult<Vec<ColorInt>> {
     Ok(operations::median(image, distance, width, height))
+}
+
+#[pyfunction]
+fn dynamic_compression(image: Vec<Pixel>, constant: f32, gamma: f32) -> PyResult<Vec<ColorInt>> {
+    Ok(operations::dynamic_compression(image, constant, gamma))
+}
+
+#[pyfunction]
+fn normalize(image: Vec<Pixel>) -> PyResult<Vec<ColorInt>> {
+    Ok(operations::normalize(image))
 }
 
 #[pymodule]
@@ -40,6 +45,7 @@ fn libkayn(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(negative, m)?)?;
     m.add_function(wrap_pyfunction!(filter_nxn, m)?)?;
     m.add_function(wrap_pyfunction!(median, m)?)?;
-
+    m.add_function(wrap_pyfunction!(dynamic_compression, m)?)?;
+    m.add_function(wrap_pyfunction!(normalize, m)?)?;
     Ok(())
 }

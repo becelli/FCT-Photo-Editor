@@ -35,7 +35,7 @@ pub fn negative(image: Vec<Pixel>) -> Vec<ColorInt> {
     });
     new_image
 }
-pub fn _filter_nxn(image: Vec<Pixel>, filter: Vec<f32>, width: u32, height: u32) -> Vec<ColorInt> {
+pub fn filter_nxn(image: Vec<Pixel>, filter: Vec<f32>, width: u32, height: u32) -> Vec<ColorInt> {
     let f_size = filter.len() as u32;
     let f_side = (f_size as f32).sqrt().round() as u32;
     let half = (f_side / 2) as u32;
@@ -85,12 +85,61 @@ pub fn median(image: Vec<Pixel>, distance: u32, width: u32, height: u32) -> Vec<
                 a_.partial_cmp(&b_).unwrap()
             });
 
-            new_image.push(get_color_integer_from_rgb(
+            let new_pixel = get_color_integer_from_rgb(
                 pixels[f_size as usize / 2][2],
                 pixels[f_size as usize / 2][1],
                 pixels[f_size as usize / 2][0],
-            ));
+            );
+            new_image.push(new_pixel);
         }
     }
+    new_image
+}
+
+pub fn dynamic_compression(image: Vec<Pixel>, constant: f32, gamma: f32) -> Vec<ColorInt> {
+    let mut new_image: Vec<ColorInt> = Vec::new();
+    image.iter().for_each(|pixel| {
+        let r = (pixel[2] as f32).powf(gamma) * constant;
+        let g = (pixel[1] as f32).powf(gamma) * constant;
+        let b = (pixel[0] as f32).powf(gamma) * constant;
+        let color = get_color_integer_from_rgb(r as u8, g as u8, b as u8);
+        new_image.push(color);
+    });
+    new_image
+}
+
+pub fn normalize(image: Vec<Pixel>) -> Vec<ColorInt> {
+    let mut new_image: Vec<ColorInt> = Vec::new();
+    let (min, max) = image
+        .iter()
+        .fold(([255u8; 3], [0u8; 3]), |(mut min, mut max), pixel| {
+            if pixel[0] < min[0] {
+                min[0] = pixel[0];
+            }
+            if pixel[1] < min[1] {
+                min[1] = pixel[1];
+            }
+            if pixel[2] < min[2] {
+                min[2] = pixel[2];
+            }
+            if pixel[0] > max[0] {
+                max[0] = pixel[0];
+            }
+            if pixel[1] > max[1] {
+                max[1] = pixel[1];
+            }
+            if pixel[2] > max[2] {
+                max[2] = pixel[2];
+            }
+            (min, max)
+        });
+
+    image.iter().for_each(|pixel| {
+        let b = 255.0 * (pixel[0] as f32 - min[0] as f32) / (max[0] as f32 - min[0] as f32);
+        let g = 255.0 * (pixel[1] as f32 - min[1] as f32) / (max[1] as f32 - min[1] as f32);
+        let r = 255.0 * (pixel[2] as f32 - min[2] as f32) / (max[2] as f32 - min[2] as f32);
+        let color = get_color_integer_from_rgb(r as u8, g as u8, b as u8);
+        new_image.push(color);
+    });
     new_image
 }

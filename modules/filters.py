@@ -137,81 +137,26 @@ class Filters:
         return new_image
 
     def dynamic_compression(self, c: float = 1, gama: float = 1) -> QImage:
-        w, h, image = self._get_default_elements_to_filters()
-        f = (
-            self._dynamic_compression_gray_pixel
-            if self.img.isGrayscale()
-            else self._dynamic_compression_colored_pixel
-        )
+        w, h = self.img.width(), self.img.height()
+        image = np.array(self.img.bits().asarray(w * h * 4)).reshape(h * w, 4)[:, :3]
+        compressed = kayn.dynamic_compression(image, c, gama)
+        new_image = QImage(w, h, QImage.Format.Format_RGB32)
+        for y in range(h):
+            for x in range(w):
+                new_image.setPixel(x, y, compressed[x + y * w])
 
-        for x in range(w):
-            for y in range(h):
-                new_pixel = f(x, y, c, gama)
-                image.setPixel(x, y, new_pixel)
-
-        self.img = image
-        normalized_img = self.normalize()
-        return normalized_img
-
-    def _dynamic_compression_gray_pixel(
-        self, x: int, y: int, c: float = 1, gama: float = 1
-    ) -> QImage:
-        pixel = self.img.pixel(x, y)
-        gray = get_gray_from_color_integer(pixel)
-        new_color = min(255, int(c * (gray**gama)))
-        new_pixel = get_color_integer_from_gray(new_color)
-        return new_pixel
+        normalized = kayn.normalize(compressed)
+        return normalized
 
     def normalize(self, pixels=None) -> QImage:
         w, h = self.img.width(), self.img.height()
-        image_to_use = lambda x, y: self.img.pixel(x, y)
-
-        if pixels is not None:
-            image_to_use = lambda x, y: pixels[x * h + y]
-            w, h = pixels.shape[0], pixels.shape[1]
-            pixels = pixels.reshape(w * h).astype(int)
-
-        min_, max_, mode = None, None, None
-        f = lambda fn, img: ([fn(int(img(x, y))) for x in range(w) for y in range(h)])
-        if self.img.isGrayscale():
-            pixels = f(get_gray_from_color_integer, image_to_use)
-            min_, max_ = min(pixels), max(pixels)
-            mode = self._get_normalized_gray_pixel
-        else:
-            pixels = f(get_rgb_from_color_integer, image_to_use)
-            min_, max_ = np.min(pixels, axis=0), np.max(pixels, axis=0)
-            mode = self._get_normalized_colored_pixel
-
-        image = QImage(w, h, QImage.Format_RGB32)
-        for x in range(w):
-            for y in range(h):
-                pixel = pixels[x * h + y]
-                new_pixel = mode(pixel, min_, max_)
-                image.setPixel(x, y, new_pixel)
-
-        return image
-
-    def _get_normalized_gray_pixel(self, pixel, min_, max_):
-        norm = int(255 * (pixel - min_) / (max_ - min_))
-        pixel_color = get_color_integer_from_gray(norm)
-        return pixel_color
-
-    def _get_normalized_colored_pixel(self, pixel, min_, max_):
-        # fmt: off
-        norm = tuple(int(255 * (pixel[i] - min_[i]) / (max_[i] - min_[i])) for i in range(3))
-        pixel_color = get_color_integer_from_rgb(*norm)
-        return pixel_color
-        # fmt: on
-
-    def _dynamic_compression_colored_pixel(
-        self, x: int, y: int, c: float = 1, gama: float = 1
-    ) -> QImage:
-        pixel = self.img.pixel(x, y)
-        rgb = get_rgb_from_color_integer(pixel)
-        f = lambda i: min(255, int(c * (rgb[i] ** gama)))
-        r, g, b = f(0), f(1), f(2)
-        new_pixel = get_color_integer_from_rgb(r, g, b)
-        return new_pixel
+        image = np.array(self.img.bits().asarray(w * h * 4)).reshape(h * w, 4)[:, :3]
+        normalized = kayn.normalize(image)
+        new_image = QImage(w, h, QImage.Format.Format_RGB32)
+        for y in range(h):
+            for x in range(w):
+                new_image.setPixel(x, y, normalized[x + y * w])
+        return new_image
 
     def sobel(self) -> QImage:
         kernelX = np.array([-1, 0, 1, -2, 0, 2, -1, 0, 1]) / np.float64(4)
@@ -223,7 +168,7 @@ class Filters:
         vertical = self.filter_NxN(kernelY)
         horizontal = self.filter_NxN(kernelX)
         w, h = vertical.width(), vertical.height()
-        image = QImage(w, h, QImage.Format_RGB32)
+        image = QImage(w, h, QImage.Format.Format_RGB32)
 
         for x in range(w):
             for y in range(h):
@@ -262,8 +207,8 @@ class Filters:
         return get_color_integer_from_gray(c)
 
     def laplace(self) -> QImage:
-        # mask = np.array([-1, -1, -1, -1, 9, -1,-1, -1, -1]) / np.float64(8)
-        mask = np.array([0, -1, 0, -1, 4, -1, 0, -1, 0]) / np.float64(4)
+        mask = np.array([-1, -1, -1, -1, 8, -1,-1, -1, -1]) / np.float64(8)
+        #mask = np.array([0, -1, 0, -1, 4, -1, 0, -1, 0]) / np.float64(4)
 
         self.img = self.filter_NxN(mask)
         normalized_img = self.normalize()
