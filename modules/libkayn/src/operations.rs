@@ -9,10 +9,6 @@ fn get_color_integer_from_gray(gray: u8) -> ColorInt {
     (gray as u32) << 16 | (gray as u32) << 8 | (gray as u32)
 }
 
-fn get_rgb_from_color_integer(color: u32) -> Pixel {
-    [(color >> 16) as u8, (color >> 8) as u8, color as u8]
-}
-
 pub fn grayscale(image: Vec<Pixel>) -> Vec<ColorInt> {
     let mut new_image: Vec<ColorInt> = Vec::new();
     image.iter().for_each(|pixel| {
@@ -35,6 +31,7 @@ pub fn negative(image: Vec<Pixel>) -> Vec<ColorInt> {
     });
     new_image
 }
+
 pub fn filter_nxn(image: Vec<Pixel>, filter: Vec<f32>, width: u32, height: u32) -> Vec<ColorInt> {
     let f_size = filter.len() as u32;
     let f_side = (f_size as f32).sqrt().round() as u32;
@@ -139,6 +136,66 @@ pub fn normalize(image: Vec<Pixel>) -> Vec<ColorInt> {
         let g = 255.0 * (pixel[1] as f32 - min[1] as f32) / (max[1] as f32 - min[1] as f32);
         let r = 255.0 * (pixel[2] as f32 - min[2] as f32) / (max[2] as f32 - min[2] as f32);
         let color = get_color_integer_from_rgb(r as u8, g as u8, b as u8);
+        new_image.push(color);
+    });
+    new_image
+}
+
+pub fn limiarize(image: Vec<Pixel>, limiar: u8) -> Vec<ColorInt> {
+    let mut new_image: Vec<ColorInt> = Vec::new();
+    image.iter().for_each(|pixel| {
+        let mut new_pixel = pixel.clone();
+        pixel.iter().enumerate().for_each(|(ch, color)| {
+            if *color < limiar + 1 {
+                new_pixel[ch] = 0;
+            }
+        });
+        let color = get_color_integer_from_rgb(new_pixel[2], new_pixel[1], new_pixel[0]);
+        new_image.push(color);
+    });
+    new_image
+}
+
+pub fn binarize(image: Vec<Pixel>, limiar: u8) -> Vec<ColorInt> {
+    let mut new_image: Vec<ColorInt> = Vec::new();
+    image.iter().for_each(|pixel| {
+        let mut new_pixel = [0u8; 3];
+        pixel.iter().enumerate().for_each(|(ch, color)| {
+            if *color > limiar {
+                new_pixel[ch] = 255;
+            } else {
+                new_pixel[ch] = 0;
+            }
+        });
+        let color = get_color_integer_from_rgb(new_pixel[2], new_pixel[1], new_pixel[0]);
+        new_image.push(color);
+    });
+    new_image
+}
+
+pub fn equalize(image: Vec<Pixel>) -> Vec<ColorInt> {
+    let mut histogram: Vec<u32> = vec![0; 256];
+    image.iter().for_each(|pixel| {
+        let r = pixel[2] as u32;
+        let g = pixel[1] as u32;
+        let b = pixel[0] as u32;
+        histogram[r as usize] += 1;
+        histogram[g as usize] += 1;
+        histogram[b as usize] += 1;
+    });
+    let mut sum: u32 = 0;
+    let mut new_histogram: Vec<u32> = vec![0; 256];
+    histogram.iter().enumerate().for_each(|(i, count)| {
+        sum += *count;
+        new_histogram[i] = sum;
+    });
+    let mut new_image: Vec<ColorInt> = Vec::new();
+    image.iter().for_each(|pixel| {
+        let (r, g, b) = (pixel[2] as u32, pixel[1] as u32, pixel[0] as u32);
+        let new_r = (new_histogram[r as usize] * 255) / sum;
+        let new_g = (new_histogram[g as usize] * 255) / sum;
+        let new_b = (new_histogram[b as usize] * 255) / sum;
+        let color = get_color_integer_from_rgb(new_r as u8, new_g as u8, new_b as u8);
         new_image.push(color);
     });
     new_image

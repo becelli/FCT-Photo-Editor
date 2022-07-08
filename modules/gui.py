@@ -253,7 +253,7 @@ class MainWindow(QMainWindow):
         elif filter == "negative":
             output = f.negative()
         elif filter == "binarize":
-            output = f.binarize()
+            output = self._try_to_binarize_image(f)
         elif filter == "mean":
             output = self._try_to_apply_mean_filter(f)
         elif filter == "median":
@@ -274,7 +274,10 @@ class MainWindow(QMainWindow):
             output = self._try_to_apply_resize_filter(f)
         elif filter == "normalize":
             output = f.normalize()
-
+        elif filter == "gaussian_laplacian":
+            output = f.gaussian_laplacian()
+        elif filter == "nevatia_babu":
+            output = f.nevatia_babu()
         else:
             pass
 
@@ -321,6 +324,12 @@ class MainWindow(QMainWindow):
         limiar = self._display_limiarization_filter_parameter()
         if limiar >= 0:
             return filtertool.limiarization(limiar)
+        return None
+    
+    def _try_to_binarize_image(self, filtertool: Filters) -> QImage:
+        limiar = self._display_limiarization_filter_parameter()
+        if limiar >= 0:
+            return filtertool.binarize(limiar)
         return None
 
     def _display_limiarization_filter_parameter(self) -> int:
@@ -456,6 +465,8 @@ class MainWindow(QMainWindow):
             MenuAction("Sobel Magnitudes", lambda: f("sobel_magnitudes"), "F12"),
             MenuAction("Salt and Pepper", lambda: f("salt_and_pepper"), "Ctrl+F1"),
             MenuAction("Resize", lambda: f("resize"), "Ctrl+F2"),
+            MenuAction("Gaussian Laplacian", lambda: f("gaussian_laplacian"), "Ctrl+F3"),
+            MenuAction("Nevatia-Babu", lambda: f("nevatia_babu"), "Ctrl+F4"),
         )
         self._add_actions_to_generic_menu(filters_menu, filters)
 

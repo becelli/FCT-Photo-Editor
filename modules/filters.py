@@ -44,14 +44,21 @@ class Filters:
     def negative(self) -> QImage:
         w, h, new_image = self._get_default_elements_to_filters()
         image = np.array(self.img.bits().asarray(w * h * 4)).reshape(h * w, 4)[:, :3]
-        negatived = kayn.negative(image)
+        negative = kayn.negative(image)
         for y in range(h):
             for x in range(w):
-                new_image.setPixel(x, y, negatived[x + y * w])
+                new_image.setPixel(x, y, negative[x + y * w])
         return new_image
 
-    def binarize(self) -> QImage:
-        return self.limiarization(127)
+    def binarize(self, limiar: int) -> QImage:
+        w, h = self.img.width(), self.img.height()
+        image = np.array(self.img.bits().asarray(w * h * 4)).reshape(h * w, 4)[:, :3]
+        binarized = kayn.binarize(image, limiar)
+        new_image = QImage(w, h, QImage.Format.Format_RGB32)
+        for y in range(h):
+            for x in range(w):
+                new_image.setPixel(x, y, binarized[x + y * w])
+        return new_image
 
     def salt_and_pepper(self, amount: float = 1) -> QImage:
         """
@@ -71,48 +78,14 @@ class Filters:
         return image
 
     def equalize(self) -> QImage:
-        w, h, image = self._get_default_elements_to_filters()
-        n = w * h
-        if self.img.isGrayscale():
-            frequency = np.zeros(256)
+        w, h = self.img.width(), self.img.height()
+        image = np.array(self.img.bits().asarray(w * h * 4)).reshape(h * w, 4)[:, :3]
+        equalized = kayn.equalize(image)
+        new_image = QImage(w, h, QImage.Format.Format_RGB32)
+        for y in range(h):
             for x in range(w):
-                for y in range(h):
-                    pixel = self.img.pixel(x, y)
-                    frequency[get_gray_from_color_integer(pixel)] += 1
-            frequency = 255 * frequency / n  # 255 * freq / (w * h)
-            cum_freq = np.cumsum(frequency)
-
-            for x in range(w):
-                for y in range(h):
-                    pixel = self.img.pixel(x, y)
-                    gray = get_gray_from_color_integer(pixel)
-                    new_pixel = get_color_integer_from_gray(int(cum_freq[gray] - 1))
-                    image.setPixel(x, y, new_pixel)
-        else:
-            r_freq, g_freq, b_freq = np.zeros(256), np.zeros(256), np.zeros(256)
-            for x in range(w):
-                for y in range(h):
-                    pixel = self.img.pixel(x, y)
-                    rgb = get_rgb_from_color_integer(pixel)
-                    r_freq[rgb[0]] += 1
-                    g_freq[rgb[1]] += 1
-                    b_freq[rgb[2]] += 1
-            r_freq = 255 * r_freq / n  # 255 * freq / (w * h)
-            g_freq = 255 * g_freq / n  # 255 * freq / (w * h)
-            b_freq = 255 * b_freq / n  # 255 * freq / (w * h)
-            cum_r_freq = np.cumsum(r_freq)
-            cum_g_freq = np.cumsum(g_freq)
-            cum_b_freq = np.cumsum(b_freq)
-            for x in range(w):
-                for y in range(h):
-                    pixel = self.img.pixel(x, y)
-                    rgb = get_rgb_from_color_integer(pixel)
-                    r = int(cum_r_freq[rgb[0]] - 1)
-                    g = int(cum_g_freq[rgb[1]] - 1)
-                    b = int(cum_b_freq[rgb[2]] - 1)
-                    new_pixel = get_color_integer_from_rgb(r, g, b)
-                    image.setPixel(x, y, new_pixel)
-        return image
+                new_image.setPixel(x, y, equalized[x + y * w])
+        return new_image 
 
     def mean(self, n: int = 3) -> QImage:
         mask = np.ones(n * n) / (n * n)
@@ -199,10 +172,10 @@ class Filters:
         return image, vertical, horizontal
 
     def _sobel_pixel(self, x: int, y: int, vertical: QImage, horizontal: QImage):
-        vertical = vertical.pixel(x, y)
-        horizontal = horizontal.pixel(x, y)
-        cur_vertical = get_gray_from_color_integer(vertical)
-        cur_horizontal = get_gray_from_color_integer(horizontal)
+        vert = vertical.pixel(x, y)
+        horiz = horizontal.pixel(x, y)
+        cur_vertical = get_gray_from_color_integer(vert)
+        cur_horizontal = get_gray_from_color_integer(horiz)
         c = int(np.abs(np.sqrt(cur_vertical**2 + cur_horizontal**2)))
         return get_color_integer_from_gray(c)
 
@@ -210,6 +183,26 @@ class Filters:
         mask = np.array([-1, -1, -1, -1, 8, -1,-1, -1, -1]) / np.float64(8)
         #mask = np.array([0, -1, 0, -1, 4, -1, 0, -1, 0]) / np.float64(4)
 
+        self.img = self.filter_NxN(mask)
+        normalized_img = self.normalize()
+        return normalized_img
+    
+    def gaussian_laplacian(self) -> QImage:
+        mask = np.array([0, 0, -1, 0, 0,
+                         0, -1, -2, -1, 0,
+                        -1, -2, 16, -2, -1,
+                         0, -1, -2, -1, 0,
+                         0, 0, -1, 0, 0]) / np.float64(16)
+        self.img = self.filter_NxN(mask)
+        normalized_img = self.normalize()
+        return normalized_img
+
+    def nevatia_babu(self) -> QImage:
+        mask = np.array([100, 100, 0, 100,100,
+                         100, 100, 0, 100, 100,
+                         100, 100, 0, 100, 100,
+                         100, 100, 0, 100, 100,
+                         100, 100, 0, 100, 100]) / np.float64(1000)
         self.img = self.filter_NxN(mask)
         normalized_img = self.normalize()
         return normalized_img
@@ -231,34 +224,16 @@ class Filters:
         y_ = int(y * ratio_y)
         return self.img.pixel(x_, y_)
 
-    def limiarization(self, t: int = 160) -> QImage:
-       #'Binarizes' an img at certain threshold.
-        w, h, image = self._get_default_elements_to_filters()
-        f = (
-            self._limiarization_gray_pixel
-            if self.img.isGrayscale()
-            else self._limiarization_colored_pixel
-        )
+    def limiarization(self, limiar: int) -> QImage:
+        w, h = self.img.width(), self.img.height()
+        image = np.array(self.img.bits().asarray(w * h * 4)).reshape(h * w, 4)[:, :3]
+        limiarized = kayn.limiarize(image, limiar)
+        new_image = QImage(w, h, QImage.Format.Format_RGB32)
+        for y in range(h):
+            for x in range(w):
+                new_image.setPixel(x, y, limiarized[x + y * w])
+        return new_image
 
-        for x in range(w):
-            for y in range(h):
-                new_pixel = f(x, y, t)
-                image.setPixel(x, y, new_pixel)
-        return image
-
-    def _limiarization_gray_pixel(self, x, y, t):
-        pixel = self.img.pixel(x, y)
-        gray = get_gray_from_color_integer(pixel)
-        if gray > t:
-            return 0xFFFFFF
-        else:
-            return 0x000000
-
-    def _limiarization_colored_pixel(self, x, y, t):
-        pixel = self.img.pixel(x, y)
-        r, g, b = get_rgb_from_color_integer(pixel)
-        r, g, b = 255 if r > t else 0, 255 if g > t else 0, 255 if b > t else 0
-        return get_color_integer_from_rgb(r, g, b)
 
     def filter_NxN(self, mask: np.ndarray) -> QImage:
         w, h = self.img.width(), self.img.height()

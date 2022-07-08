@@ -39,6 +39,20 @@ fn normalize(image: Vec<Pixel>) -> PyResult<Vec<ColorInt>> {
     Ok(operations::normalize(image))
 }
 
+#[pyfunction]
+fn limiarize(image: Vec<Pixel>, threshold: u8) -> PyResult<Vec<ColorInt>> {
+    Ok(operations::limiarize(image, threshold))
+}
+
+#[pyfunction]
+fn binarize(image: Vec<Pixel>, threshold: u8) -> PyResult<Vec<ColorInt>> {
+    Ok(operations::binarize(image, threshold))
+}
+#[pyfunction]
+fn equalize(image: Vec<Pixel>) -> PyResult<Vec<ColorInt>> {
+    Ok(operations::equalize(image))
+}
+
 #[pymodule]
 fn libkayn(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(grayscale, m)?)?;
@@ -47,5 +61,8 @@ fn libkayn(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(median, m)?)?;
     m.add_function(wrap_pyfunction!(dynamic_compression, m)?)?;
     m.add_function(wrap_pyfunction!(normalize, m)?)?;
+    m.add_function(wrap_pyfunction!(limiarize, m)?)?;
+    m.add_function(wrap_pyfunction!(binarize, m)?)?;
+    m.add_function(wrap_pyfunction!(equalize, m)?)?;
     Ok(())
 }
