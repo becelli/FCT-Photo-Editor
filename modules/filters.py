@@ -180,29 +180,77 @@ class Filters:
         return get_color_integer_from_gray(c)
 
     def laplace(self) -> QImage:
-        mask = np.array([-1, -1, -1, -1, 8, -1,-1, -1, -1]) / np.float64(8)
-        #mask = np.array([0, -1, 0, -1, 4, -1, 0, -1, 0]) / np.float64(4)
+        mask = np.array([-1, -1, -1, -1, 8, -1, -1, -1, -1]) / np.float64(8)
+        # mask = np.array([0, -1, 0, -1, 4, -1, 0, -1, 0]) / np.float64(4)
 
         self.img = self.filter_NxN(mask)
         normalized_img = self.normalize()
         return normalized_img
-    
+
     def gaussian_laplacian(self) -> QImage:
-        mask = np.array([0, 0, -1, 0, 0,
-                         0, -1, -2, -1, 0,
-                        -1, -2, 16, -2, -1,
-                         0, -1, -2, -1, 0,
-                         0, 0, -1, 0, 0]) / np.float64(16)
+        mask = np.array(
+            [
+                0,
+                0,
+                -1,
+                0,
+                0,
+                0,
+                -1,
+                -2,
+                -1,
+                0,
+                -1,
+                -2,
+                16,
+                -2,
+                -1,
+                0,
+                -1,
+                -2,
+                -1,
+                0,
+                0,
+                0,
+                -1,
+                0,
+                0,
+            ]
+        ) / np.float64(16)
         self.img = self.filter_NxN(mask)
         normalized_img = self.normalize()
         return normalized_img
 
     def nevatia_babu(self) -> QImage:
-        mask = np.array([100, 100, 0, 100,100,
-                         100, 100, 0, 100, 100,
-                         100, 100, 0, 100, 100,
-                         100, 100, 0, 100, 100,
-                         100, 100, 0, 100, 100]) / np.float64(1000)
+        mask = np.array(
+            [
+                100,
+                100,
+                0,
+                100,
+                100,
+                100,
+                100,
+                0,
+                100,
+                100,
+                100,
+                100,
+                0,
+                100,
+                100,
+                100,
+                100,
+                0,
+                100,
+                100,
+                100,
+                100,
+                0,
+                100,
+                100,
+            ]
+        ) / np.float64(1000)
         self.img = self.filter_NxN(mask)
         normalized_img = self.normalize()
         return normalized_img
@@ -274,3 +322,15 @@ class Filters:
                         sum_ += dctl
 
                 result[u][v] = sum_ * ci * cj
+
+    def gray_to_color_scale(self) -> QImage:
+        w, h = self.img.width(), self.img.height()
+        image = np.array(self.img.bits().asarray(w * h * 4)).reshape(h * w, 4)[:, :3]
+        if not self.img.isGrayscale():
+            self.img = self.grayscale()
+        new_image = QImage(w, h, QImage.Format.Format_RGB32)
+        colorized = kayn.gray_to_color_scale(image)
+        for y in range(h):
+            for x in range(w):
+                new_image.setPixel(x, y, colorized[x + y * w])
+        return new_image

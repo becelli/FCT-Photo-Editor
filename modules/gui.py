@@ -278,6 +278,8 @@ class MainWindow(QMainWindow):
             output = f.gaussian_laplacian()
         elif filter == "nevatia_babu":
             output = f.nevatia_babu()
+        elif filter == "color_scale":
+            output = f.gray_to_color_scale()
         else:
             pass
 

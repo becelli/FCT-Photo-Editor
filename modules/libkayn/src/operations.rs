@@ -200,3 +200,30 @@ pub fn equalize(image: Vec<Pixel>) -> Vec<ColorInt> {
     });
     new_image
 }
+pub fn gray_to_color_scale(image: Vec<Pixel>) -> Vec<ColorInt> {
+    let mut new_image: Vec<ColorInt> = Vec::new();
+    image.iter().for_each(|pixel| {
+        let grey_value = ((pixel[0] as u32 + pixel[1] as u32 + pixel[2] as u32) / 3) as u8;
+        let (r, g, b) : (u8, u8, u8);
+        if grey_value < 64 {
+            r = 0;
+            g = 4 * grey_value;
+            b = 255;
+        } else if (grey_value >= 64) && (grey_value < 128) {
+            r = 0;
+            g = 255;
+            b = 255 - 4 * (grey_value - 64);
+        } else if (grey_value >= 128) && (grey_value < 192) {
+            r = 4 * (grey_value - 128);
+            g = 255;
+            b = 0;
+        } else {
+            r = 255;
+            g = 255 - 4 * grey_value;
+            b = 0;
+        }
+        let color = get_color_integer_from_rgb(r, g, b);
+        new_image.push(color);
+    });
+    new_image
+}
