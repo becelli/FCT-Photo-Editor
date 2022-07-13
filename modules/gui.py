@@ -325,7 +325,7 @@ class MainWindow(QMainWindow):
         if limiar >= 0:
             return filtertool.limiarization(limiar)
         return None
-    
+
     def _try_to_binarize_image(self, filtertool: Filters) -> QImage:
         limiar = self._display_limiarization_filter_parameter()
         if limiar >= 0:
@@ -465,8 +465,12 @@ class MainWindow(QMainWindow):
             MenuAction("Sobel Magnitudes", lambda: f("sobel_magnitudes"), "F12"),
             MenuAction("Salt and Pepper", lambda: f("salt_and_pepper"), "Ctrl+F1"),
             MenuAction("Resize", lambda: f("resize"), "Ctrl+F2"),
-            MenuAction("Gaussian Laplacian", lambda: f("gaussian_laplacian"), "Ctrl+F3"),
+            MenuAction(
+                "Gaussian Laplacian", lambda: f("gaussian_laplacian"), "Ctrl+F3"
+            ),
             MenuAction("Nevatia-Babu", lambda: f("nevatia_babu"), "Ctrl+F4"),
+            #            MenuAction("Laplacian of Gaussian", lambda: f("laplacian_of_gaussian"), "Ctrl+F5"),
+            MenuAction("Colorize Gray", lambda: f("color_scale"), "Ctrl+F6"),
         )
         self._add_actions_to_generic_menu(filters_menu, filters)
 

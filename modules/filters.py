@@ -85,7 +85,7 @@ class Filters:
         for y in range(h):
             for x in range(w):
                 new_image.setPixel(x, y, equalized[x + y * w])
-        return new_image 
+        return new_image
 
     def mean(self, n: int = 3) -> QImage:
         mask = np.ones(n * n) / (n * n)
@@ -234,7 +234,6 @@ class Filters:
                 new_image.setPixel(x, y, limiarized[x + y * w])
         return new_image
 
-
     def filter_NxN(self, mask: np.ndarray) -> QImage:
         w, h = self.img.width(), self.img.height()
         f_size = mask.shape[0]
@@ -251,7 +250,6 @@ class Filters:
 
         return new_image
 
-        
     def discrete_cousine_transform(self) -> QImage:
         w, h, image = self._get_default_elements_to_filters()
         ci, cj, dctl, sum_ = 0.0, 0.0, 0.0, 0.0
@@ -265,7 +263,7 @@ class Filters:
             for v in range(h):
                 ci = alpha(u, w)
                 cj = alpha(v, h)
-                sum_ = np.float(0)
+                sum_ = 0.0
                 for x in range(w):
                     for y in range(h):
                         pixel = entry[x][y]
