@@ -1,3 +1,5 @@
 PyQt5>=5.15.7
 numpy>=1.23.0
 matplotlib>=3.5.2
+nuitka>=0.9.4
+ordered-set>=4.0.2
