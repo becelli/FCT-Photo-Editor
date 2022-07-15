@@ -96,14 +96,18 @@ pub fn median(image: Vec<Pixel>, distance: u32, width: u32, height: u32) -> Vec<
 }
 
 pub fn dynamic_compression(image: Vec<Pixel>, constant: f32, gamma: f32) -> Vec<ColorInt> {
-    let mut new_image: Vec<ColorInt> = Vec::new();
+    let mut compressed_img: Vec<Pixel> = Vec::new();
+    // Yes. The channels are not in the reverse order. When we normalize it
+    // It will be in the right order.
     image.iter().for_each(|pixel| {
-        let r = (pixel[2] as f32).powf(gamma) * constant;
+        let r = (pixel[0] as f32).powf(gamma) * constant;
         let g = (pixel[1] as f32).powf(gamma) * constant;
-        let b = (pixel[0] as f32).powf(gamma) * constant;
-        let color = get_color_integer_from_rgb(r as u8, g as u8, b as u8);
-        new_image.push(color);
+        let b = (pixel[2] as f32).powf(gamma) * constant;
+        let color = [r as u8, g as u8, b as u8];
+        compressed_img.push(color);
     });
+
+    let new_image = normalize(compressed_img);
     new_image
 }
 
