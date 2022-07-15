@@ -17,27 +17,44 @@ class OS:
     def release_build(self):
         os.system(self.rust_build)
         os.system(self.copy_lib)
-        os.system(self.compile_python) # TODO: "compile" python
-
+        os.system(self.compile_python)
+    
+    def install_deps(self):
+        print("Try to install dependencies...")
+        print("pip3 install -r requirements.txt")
+        try:
+            os.system("pip3 install -r requirements.txt")
+        except:
+            print("Failed to install dependencies")
+            try:
+                os.system("python3 -m pip install -r requirements.txt")
+            except:
+                print("Failed to install dependencies")
+                print("Please install dependencies manually")
+                sys.exit(1)
+                
 
 class Linux(OS):
     def __init__(self):
         self.rust_build = "cargo build --release --manifest-path=./modules/libkayn/Cargo.toml"
         self.copy_lib = "cp ./modules/libkayn/target/release/liblibkayn.so ./libkayn.so"
-        self.execute_python = "python kayn.pyw"
+        self.execute_python = "python3 kayn.pyw"
+        self.compile_python = "nuitka3 kayn.pyw --follow-imports"
 
 
 class Windows(OS):
     def __init__(self):
         self.rust_build = "cargo build --release --manifest-path=./modules/libkayn/Cargo.toml"
         self.copy_lib = "copy modules\\libkayn\\target\\release\\libkayn.dll libkayn.pyd"
-        self.execute_python = "python kayn.pyw"
+        self.execute_python = "python .\kayn.pyw"
+        self.compile_python = "nuitka .\kayn.pyw --follow-imports"
     
 class Mac(OS):
     def __init__(self):
         self.rust_build = "cargo build --release --manifest-path=./modules/libkayn/Cargo.toml"
         self.copy_lib = "cp ./modules/libkayn/target/release/liblibkayn.dylib ./libkayn.so"
-        self.execute_python = "python kayn.pyw"
+        self.execute_python = "python3 kayn.pyw"
+        self.compile_python = "nuitka3 kayn.pyw --follow-imports"
 
 
 if __name__ == "__main__":
@@ -47,6 +64,8 @@ if __name__ == "__main__":
         system = Linux()
     elif sys.platform == "win32":
         system = Windows()
+    elif sys.platform == "darwin":
+        system = Mac()
     else:
         print("Unsupported OS")
         sys.exit(1)
@@ -56,6 +75,8 @@ if __name__ == "__main__":
             system.dev_build()
         elif sys.argv[1] == "release":
             system.release_build()
+        elif sys.argv[1] == "dep":
+            system.install_deps()            
         else:
             print("Unsupported argument")
             sys.exit(1)
