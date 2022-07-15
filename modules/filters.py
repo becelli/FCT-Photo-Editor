@@ -1,12 +1,6 @@
 from PyQt5.QtGui import QImage
 import numpy as np
-from modules.functions import (
-    get_color_integer_from_color_name,
-    get_color_integer_from_gray,
-    get_color_integer_from_rgb,
-    get_gray_from_color_integer,
-    get_rgb_from_color_integer,
-)
+import modules.colors_adapter as c_adpt
 import libkayn as kayn
 
 
@@ -43,7 +37,7 @@ class Filters:
         for x in range(w):
             for y in range(h):
                 pixel = self.img.pixel(x, y)
-                new_pixel = get_color_integer_from_color_name(color, pixel)
+                new_pixel = c_adpt.get_color_integer_from_color_name(color, pixel)
                 image.setPixel(x, y, new_pixel)
         return image
 
@@ -180,10 +174,10 @@ class Filters:
     def _sobel_pixel(self, x: int, y: int, vertical: QImage, horizontal: QImage):
         vert = vertical.pixel(x, y)
         horiz = horizontal.pixel(x, y)
-        cur_vertical = get_gray_from_color_integer(vert)
-        cur_horizontal = get_gray_from_color_integer(horiz)
+        cur_vertical = c_adpt.get_gray_from_color_integer(vert)
+        cur_horizontal = c_adpt.get_gray_from_color_integer(horiz)
         c = int(np.abs(np.sqrt(cur_vertical**2 + cur_horizontal**2)))
-        return get_color_integer_from_gray(c)
+        return c_adpt.get_color_integer_from_gray(c)
 
     def laplace(self) -> QImage:
         mask = np.array([-1, -1, -1, -1, 8, -1, -1, -1, -1]) / np.float64(8)

@@ -1,47 +1,15 @@
-import matplotlib.pyplot as plt
-import sys
-from PyQt5.QtWidgets import (
-    QApplication,
-    QLabel,
-    QMainWindow,
-    QAction,
-    QPushButton,
-)
-from PyQt5.QtGui import (
-    QIcon,
-    QPixmap,
-    QImage,
-    QFont,
-    QGuiApplication,
-    QMouseEvent,
-)
-from PyQt5.QtCore import Qt
-from modules import frequency_domain
-from modules.filters import Filters
-from modules.color_converter import ColorConverter
-from modules.functions import (
-    get_gray_from_rgb,
-    get_rgb_from_color_integer,
-    get_gray_from_color_integer,
-    get_rgb_from_color_integer,
-)
-from modules.frequency_domain import FrequencyDomain
-from modules.qt_override import (
-    QGrid,
-    QObjects,
-    QDialogs,
-    QChildWindow,
-    display_grid_on_window,
-    get_image_from_canvas,
-    get_pixmap_from_canvas,
-    put_image_on_canvas,
-    put_pixmap_on_canvas,
-    display_int_input_dialog,
-    display_float_input_dialog,
-)
 import numpy as np
+import matplotlib.pyplot as plt
 
-# Override the default QWidget to automatically center the elements
+
+from PyQt5.QtWidgets import QApplication, QLabel, QMainWindow, QAction, QPushButton
+from PyQt5.QtGui import QIcon, QPixmap, QImage, QFont, QGuiApplication, QMouseEvent
+from PyQt5.QtCore import Qt
+
+from modules.filters import Filters
+from modules.gui.color_converter import ColorConverter
+import modules.colors_adapter as c_adpt
+import modules.gui.qt_override as qto
 
 
 class MenuAction:
@@ -99,10 +67,7 @@ class MainWindow(QMainWindow):
         self._add_menus_to_menubar(menubar)
 
     def display_main_content(self):
-        # TODO: I don't know if i should 'clear' this code.
-        # If I split this code in two, the creation of the labels and canvas
-        # will be hidden to this function.
-        grid = QGrid()
+        grid = qto.QGrid()
 
         input_label, self.input_canvas = self._create_canvas("Input")
         self._set_mouse_tracking_to_show_pixel_details(self.input_canvas)
@@ -124,7 +89,7 @@ class MainWindow(QMainWindow):
 
         grid.setRowStretch(3, 1)
 
-        display_grid_on_window(self, grid)
+        qto.display_grid_on_window(self, grid)
 
     # Feature: Display the histogram of the input image
     def display_histogram(self) -> None:
@@ -147,11 +112,11 @@ class MainWindow(QMainWindow):
         for x in range(w):
             for y in range(h):
                 pixel = image.pixel(x, y)
-                pixels[x, y] = get_gray_from_color_integer(pixel)
+                pixels[x, y] = c_adpt.get_gray_from_color_integer(pixel)
         return pixels
 
     def _get_gray_image(self) -> QImage:
-        f = Filters(img=get_image_from_canvas(self.input_canvas))
+        f = Filters(img=qto.get_image_from_canvas(self.input_canvas))
         image: QImage = f.grayscale()
         return image
 
@@ -159,20 +124,20 @@ class MainWindow(QMainWindow):
     def display_color_channels(self) -> None:
         window = self._create_window_to_display_splitted_colors()
         grid = self._create_grid_with_isolated_color_channels()
-        display_grid_on_window(window, grid)
+        qto.display_grid_on_window(window, grid)
 
     def _create_window_to_display_splitted_colors(self) -> None:
         w, h = self.window_dimensions
         w, h = int(w * 1.25), int(h * 0.8)
-        return QChildWindow(self, "Channels", w, h)
+        return qto.QChildWindow(self, "Channels", w, h)
 
-    def _create_grid_with_isolated_color_channels(self) -> QGrid:
-        grid = QGrid()
+    def _create_grid_with_isolated_color_channels(self) -> qto.QGrid:
+        grid = qto.QGrid()
         self._add_channels_to_grid(grid)
         grid.setRowStretch(2, 1)
         return grid
 
-    def _add_channels_to_grid(self, grid: QGrid) -> None:
+    def _add_channels_to_grid(self, grid: qto.QGrid) -> None:
         colors = ["red", "green", "blue"]
         for i, color in enumerate(colors):
             label, canvas = self._create_canvas(colors[i], 320, 240)
@@ -184,9 +149,9 @@ class MainWindow(QMainWindow):
     def _insert_isolated_color_channel_into_canvas(
         self, color: str, canvas: QLabel
     ) -> None:
-        f = Filters(img=get_image_from_canvas(self.input_canvas))
+        f = Filters(img=qto.get_image_from_canvas(self.input_canvas))
         image: QImage = f.get_channel(color)
-        put_image_on_canvas(canvas, image)
+        qto.put_image_on_canvas(canvas, image)
 
     def _get_styled_label_with_color(self, color: str, label: QLabel) -> None:
         label.setStyleSheet(f"background-color: {color};")
@@ -228,7 +193,7 @@ class MainWindow(QMainWindow):
         )
 
     def _get_contrast_color(self, bg_color: tuple[int, int, int]) -> str:
-        return "white" if get_gray_from_rgb(*bg_color) < 128 else "black"
+        return "white" if c_adpt.get_gray_from_rgb(*bg_color) < 128 else "black"
 
     def _get_pixel_coordinates_and_color(
         self, event: QMouseEvent, canvas: QLabel = None
@@ -237,14 +202,14 @@ class MainWindow(QMainWindow):
             canvas = self.input_canvas
 
         x, y = event.x(), event.y()
-        image = get_image_from_canvas(canvas)
+        image = qto.get_image_from_canvas(canvas)
         pixel_integer = image.pixel(x, y)
-        color = get_rgb_from_color_integer(pixel_integer)
+        color = c_adpt.get_rgb_from_color_integer(pixel_integer)
         return x, y, color
 
     # Feature: Apply filters to the input image.
     def _apply_filter_to_input_image(self, filter: str) -> None:
-        f = Filters(get_image_from_canvas(self.input_canvas))
+        f = Filters(qto.get_image_from_canvas(self.input_canvas))
         output = None
         if filter == "grayscale":
             output = f.grayscale()
@@ -308,7 +273,7 @@ class MainWindow(QMainWindow):
         return None
 
     def _display_mean_and_median_filter_size_chooser(self) -> int:
-        return display_int_input_dialog("Filter size", 3, 100, 3)
+        return qto.display_int_input_dialog("Filter size", 3, 100, 3)
 
     def _try_to_apply_salt_and_pepper_filter(self, filtertool: Filters) -> QImage:
         size = self._display_salt_and_pepper_filter_size_chooser()
@@ -317,7 +282,7 @@ class MainWindow(QMainWindow):
         return None
 
     def _display_salt_and_pepper_filter_size_chooser(self) -> int:
-        return display_int_input_dialog("Percentage of noise", 1, 100, 10)
+        return qto.display_int_input_dialog("Percentage of noise", 1, 100, 10)
 
     def _try_to_apply_dynamic_compression_filter(self, filtertool: Filters) -> QImage:
         c, gama = self._display_dynamic_compression_filter_parameters()
@@ -326,8 +291,8 @@ class MainWindow(QMainWindow):
         return None
 
     def _display_dynamic_compression_filter_parameters(self) -> tuple[int, int]:
-        constant = display_float_input_dialog("Constant c", 0, 100, 1)
-        gamma = display_float_input_dialog("Gama", 0, 3, 0.8)
+        constant = qto.display_float_input_dialog("Constant c", 0, 100, 1)
+        gamma = qto.display_float_input_dialog("Gama", 0, 3, 0.8)
         return constant, gamma
 
     def _try_to_apply_limiarization_filter(self, filtertool: Filters) -> QImage:
@@ -343,7 +308,7 @@ class MainWindow(QMainWindow):
         return None
 
     def _display_limiarization_filter_parameter(self) -> int:
-        return display_int_input_dialog("Limiar", 0, 255, 127)
+        return qto.display_int_input_dialog("Limiar", 0, 255, 127)
 
     def _try_to_apply_resize_filter(self, f: Filters) -> QImage:
         w, h = self._display_resize_filter_parameters()
@@ -352,8 +317,8 @@ class MainWindow(QMainWindow):
         return None
 
     def _display_resize_filter_parameters(self) -> tuple[int, int]:
-        w = display_int_input_dialog("Width", 1, 10000, 640)
-        h = display_int_input_dialog("Height", 1, 10000, 480)
+        w = qto.display_int_input_dialog("Width", 1, 10000, 640)
+        h = qto.display_int_input_dialog("Height", 1, 10000, 480)
         return w, h
 
     def display_sobel_magnitudes_filter(self, f: Filters) -> None:
@@ -364,14 +329,14 @@ class MainWindow(QMainWindow):
         window, grid, font = self._create_sobel_magnitude_window_toolset(w, h)
 
         grid.setColumnStretch(0, 1)
-        display_grid_on_window(window, grid)
+        qto.display_grid_on_window(window, grid)
         self._add_sobel_images_to_grid(images, names, grid, font)
 
         window.show()
 
     def _create_sobel_magnitude_window_toolset(self, w, h):
-        window = QChildWindow(self, "Sobel Magnitudes", 3 * w, int(h * 1.1))
-        grid = QGrid(window)
+        window = qto.QChildWindow(self, "Sobel Magnitudes", 3 * w, int(h * 1.1))
+        grid = qto.QGrid(window)
         grid.setSpacing(3)
         font = QFont("Monospace", 12)
         return window, grid, font
@@ -381,30 +346,30 @@ class MainWindow(QMainWindow):
             name = f"{labels[i]}"
             grid.addWidget(QLabel(name, font=font), 0, i)
             canvas = QLabel()
-            put_image_on_canvas(canvas, image)
+            qto.put_image_on_canvas(canvas, image)
             grid.addWidget(canvas, 1, i)
 
     def _apply_output_to_input_canvas(self):
-        pixmap = get_pixmap_from_canvas(self.output_canvas)
-        put_pixmap_on_canvas(self.input_canvas, pixmap)
+        pixmap = qto.get_pixmap_from_canvas(self.output_canvas)
+        qto.put_pixmap_on_canvas(self.input_canvas, pixmap)
 
     def _update_output_canvas(self, new_image: QImage):
-        put_image_on_canvas(self.output_canvas, new_image)
+        qto.put_image_on_canvas(self.output_canvas, new_image)
 
     # Qt Manipulations
     def _create_canvas(
         self, name: str = "Canvas", xscale: int = 0, yscale: int = 0
     ) -> tuple[QLabel, QLabel]:
-        label = QObjects.label(name)
+        label = qto.QObjects.label(name)
         label.setFont(QFont("Monospace", 16))
-        canvas = QObjects.canvas(320, 240)
+        canvas = qto.QObjects.canvas(320, 240)
         if xscale != 0 and yscale != 0:
             canvas.setScaledContents(True)
             canvas.setFixedSize(xscale, yscale)
         return label, canvas
 
     def _create_apply_changes_button(self) -> QPushButton:
-        button = QObjects.button(
+        button = qto.QObjects.button(
             name="Apply",
             func=self._apply_output_to_input_canvas,
             shortcut="CTRL+P",
@@ -446,15 +411,10 @@ class MainWindow(QMainWindow):
 
     def _add_actions_to_tools_menu(self, tools_menu):
         display_color_converter = lambda: ColorConverter(self)
-        display_frequency_domain = lambda: FrequencyDomain(
-            self, image=get_image_from_canvas(self.input_canvas)
-        )
-        # Declaring here to do not break identation.
         actions = (
             MenuAction("Histogram", self.display_histogram, "Ctrl+H"),
             MenuAction("Channels", self.display_color_channels, "Ctrl+C"),
             MenuAction("Color Converter", display_color_converter, "Ctrl+R"),
-            MenuAction("Frequency Domain", display_frequency_domain, "Ctrl+F"),
         )
         self._add_actions_to_generic_menu(tools_menu, actions)
 
@@ -499,24 +459,21 @@ class MainWindow(QMainWindow):
 
     # File management
     def open_image(self):
-        filename = QDialogs().get_open_path()
+        filename = qto.QDialogs().get_open_path()
         if filename:
             pixmap = QPixmap(filename)
-            # if is a square image, resize it to the canvas size
-            if pixmap.width() == pixmap.height():
-                pixmap = pixmap
-            else:
-                pixmap = pixmap
-            put_pixmap_on_canvas(self.input_canvas, pixmap)
+            qto.put_pixmap_on_canvas(self.input_canvas, pixmap)
 
     def save_image(self):
-        filename = QDialogs().get_save_path()
+        filename = qto.QDialogs().get_save_path()
         if filename:
-            get_pixmap_from_canvas(self.input_canvas).save(filename)
+            qto.get_pixmap_from_canvas(self.input_canvas).save(filename)
 
 
 def main():
-    app = QApplication(sys.argv)
+    from sys import argv, exit
+
+    app = QApplication(argv)
     window = MainWindow()
     window.show()
-    sys.exit(app.exec())
+    exit(app.exec())

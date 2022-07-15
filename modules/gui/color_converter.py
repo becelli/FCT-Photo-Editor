@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QLabel, QLineEdit
 from PyQt5.QtGui import QFont, QDoubleValidator
 from PyQt5.QtCore import Qt
-from modules.qt_override import QGrid, QChildWindow, display_grid_on_window
+from modules.gui.qt_override import QGrid, QChildWindow, display_grid_on_window
 
 
 class ColorConverter:
@@ -113,12 +113,12 @@ class ColorConverter:
 
         rgb_label = QLabel("RGB")
         rgb_label.setFont(QFont("Arial", 12))
-        rgb_label.setAlignment(Qt.Alignment.AlignCenter)
+        rgb_label.setAlignment(Qt.AlignCenter)
         grid.addWidget(rgb_label, 0, 0, 1, 2)
 
         r_label = QLabel("R")
         r_label.setFont(QFont("Arial", 12))
-        r_label.setAlignment(Qt.Alignment.AlignCenter)
+        r_label.setAlignment(Qt.AlignCenter)
         grid.addWidget(r_label, 1, 0)
 
         self.r_input = QLineEdit()
