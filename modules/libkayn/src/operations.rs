@@ -1,13 +1,15 @@
 type Pixel = [u8; 3];
 type ColorInt = u32;
 
-fn get_color_integer_from_rgb(r: u8, g: u8, b: u8) -> ColorInt {
+pub fn get_color_integer_from_rgb(r: u8, g: u8, b: u8) -> ColorInt {
     (r as u32) << 16 | (g as u32) << 8 | (b as u32)
 }
 
-fn get_color_integer_from_gray(gray: u8) -> ColorInt {
+pub fn get_color_integer_from_gray(gray: u8) -> ColorInt {
     (gray as u32) << 16 | (gray as u32) << 8 | (gray as u32)
 }
+
+
 
 pub fn grayscale(image: Vec<Pixel>) -> Vec<ColorInt> {
     let mut new_image: Vec<ColorInt> = Vec::new();
@@ -225,5 +227,116 @@ pub fn gray_to_color_scale(image: Vec<Pixel>) -> Vec<ColorInt> {
         let color = get_color_integer_from_rgb(r, g, b);
         new_image.push(color);
     });
+    new_image
+}
+
+pub fn noise_reduction_max(
+    image: Vec<Pixel>,
+    distance: u32,
+    width: u32,
+    height: u32,
+) -> Vec<ColorInt> {
+    let f_size = (distance * 2 + 1).pow(2) as u32;
+    let f_side = 2 * distance + 1;
+    let half = (f_side / 2) as u32;
+    let mut new_image: Vec<ColorInt> = Vec::new();
+
+    for y in half..(height - half) {
+        for x in half..(width - half) {
+            let mut pixels: Vec<Pixel> = vec![[0u8; 3]; f_size as usize];
+            for i in 0..f_size {
+                let x_: u32 = x + (i % f_side) - half;
+                let y_: u32 = y + (i / f_side) - half;
+                let aux_pixel = image[(y_ * width + x_) as usize];
+                pixels[i as usize] = aux_pixel;
+            }
+
+            pixels.sort_by(|a, b| {
+                let a_ = get_color_integer_from_rgb(a[2], a[1], a[0]);
+                let b_ = get_color_integer_from_rgb(b[2], b[1], b[0]);
+                a_.partial_cmp(&b_).unwrap()
+            });
+
+            let new_pixel = get_color_integer_from_rgb(
+                pixels[f_size as usize - 1][2],
+                pixels[f_size as usize - 1][1],
+                pixels[f_size as usize - 1][0],
+            );
+            new_image.push(new_pixel);
+        }
+    }
+    new_image
+}
+
+pub fn noise_reduction_min(
+    image: Vec<Pixel>,
+    distance: u32,
+    width: u32,
+    height: u32,
+) -> Vec<ColorInt> {
+    let f_size = (distance * 2 + 1).pow(2) as u32;
+    let f_side = 2 * distance + 1;
+    let half = (f_side / 2) as u32;
+    let mut new_image: Vec<ColorInt> = Vec::new();
+
+    for y in half..(height - half) {
+        for x in half..(width - half) {
+            let mut pixels: Vec<Pixel> = vec![[0u8; 3]; f_size as usize];
+            for i in 0..f_size {
+                let x_: u32 = x + (i % f_side) - half;
+                let y_: u32 = y + (i / f_side) - half;
+                let aux_pixel = image[(y_ * width + x_) as usize];
+                pixels[i as usize] = aux_pixel;
+            }
+
+            pixels.sort_by(|a, b| {
+                let a_ = get_color_integer_from_rgb(a[2], a[1], a[0]);
+                let b_ = get_color_integer_from_rgb(b[2], b[1], b[0]);
+                a_.partial_cmp(&b_).unwrap()
+            });
+
+            let new_pixel =
+                get_color_integer_from_rgb(pixels[0][2], pixels[0][1], pixels[0][0]);
+            new_image.push(new_pixel);
+        }
+    }
+    new_image
+}
+
+pub fn noise_reduction_midpoint(
+    image: Vec<Pixel>,
+    distance: u32,
+    width: u32,
+    height: u32,
+) -> Vec<ColorInt> {
+    let f_size = (distance * 2 + 1).pow(2) as u32;
+    let f_side = 2 * distance + 1;
+    let half = (f_side / 2) as u32;
+    let mut new_image: Vec<ColorInt> = Vec::new();
+
+    for y in half..(height - half) {
+        for x in half..(width - half) {
+            let mut pixels: Vec<Pixel> = vec![[0u8; 3]; f_size as usize];
+            for i in 0..f_size {
+                let x_: u32 = x + (i % f_side) - half;
+                let y_: u32 = y + (i / f_side) - half;
+                let aux_pixel = image[(y_ * width + x_) as usize];
+                pixels[i as usize] = aux_pixel;
+            }
+
+            pixels.sort_by(|a, b| {
+                let a_ = get_color_integer_from_rgb(a[2], a[1], a[0]);
+                let b_ = get_color_integer_from_rgb(b[2], b[1], b[0]);
+                a_.partial_cmp(&b_).unwrap()
+            });
+
+            let new_pixel = get_color_integer_from_rgb(
+                pixels[0][2] / 2 + pixels[f_size as usize - 1][2] / 2,
+                pixels[0][1] / 2 + pixels[f_size as usize - 1][1] / 2,
+                pixels[0][0] / 2 + pixels[f_size as usize - 1][0] / 2,
+            );
+            new_image.push(new_pixel);
+        }
+    }
     new_image
 }

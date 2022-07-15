@@ -280,6 +280,14 @@ class MainWindow(QMainWindow):
             output = f.nevatia_babu()
         elif filter == "color_scale":
             output = f.gray_to_color_scale()
+        elif filter == "noise_reduction_max":
+            output = f.noise_reduction_max()
+        elif filter == "noise_reduction_min":
+            output = f.noise_reduction_min()
+        elif filter == "noise_reduction_midpoint":
+            output = f.noise_reduction_midpoint()
+        elif filter == "cosine_transform":
+            output = f.DCT()
         else:
             pass
 
@@ -473,6 +481,12 @@ class MainWindow(QMainWindow):
             MenuAction("Nevatia-Babu", lambda: f("nevatia_babu"), "Ctrl+F4"),
             #            MenuAction("Laplacian of Gaussian", lambda: f("laplacian_of_gaussian"), "Ctrl+F5"),
             MenuAction("Colorize Gray", lambda: f("color_scale"), "Ctrl+F6"),
+            MenuAction("Noise Red. Max", lambda: f("noise_reduction_max"), "Ctrl+F7"),
+            MenuAction("Noise Red. Min", lambda: f("noise_reduction_min"), "Ctrl+F8"),
+            MenuAction(
+                "Noise Red. Midpoint", lambda: f("noise_reduction_midpoint"), "Ctrl+F9"
+            ),
+            MenuAction("cosine_transform", lambda: f("cosine_transform"), "Ctrl+F10"),
         )
         self._add_actions_to_generic_menu(filters_menu, filters)
 

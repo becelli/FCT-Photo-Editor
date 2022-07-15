@@ -304,32 +304,38 @@ class Filters:
 
         return new_image
 
-    def discrete_cousine_transform(self) -> QImage:
-        w, h, image = self._get_default_elements_to_filters()
-        ci, cj, dctl, sum_ = 0.0, 0.0, 0.0, 0.0
-
-        entry = np.ones((8, 8)) * np.int64(255)
-        result = np.zeros((8, 8))
-        w, h = 8, 8
-
-        alpha = lambda u, n: np.sqrt(1 / n) if u == 0 else np.sqrt(2.0 / n)
-        for u in range(w):
-            for v in range(h):
-                ci = alpha(u, w)
-                cj = alpha(v, h)
-                sum_ = 0.0
-                for x in range(w):
-                    for y in range(h):
-                        pixel = entry[x][y]
-
-                        dctl = pixel
-                        dctl *= np.cos((2 * x + 1) * u * np.pi / (2.0 * w))
-                        dctl *= np.cos((2 * y + 1) * v * np.pi / (2.0 * h))
-                        sum_ += dctl
-
-                result[u][v] = sum_ * ci * cj
-
     def gray_to_color_scale(self) -> QImage:
+        w, h = self.img.width(), self.img.height()
+        image = self._get_img_pixels(w, h)
+        if not self.img.isGrayscale():
+            self.img = self.grayscale()
+        new_image = QImage(w, h, QImage.Format.Format_RGB32)
+        colorized = kayn.gray_to_color_scale(image)
+        for y in range(h):
+            for x in range(w):
+                new_image.setPixel(x, y, colorized[x + y * w])
+        return new_image
+
+    def noise_reduction_max(self, n: int = 3) -> QImage:
+        n = n if n % 2 == 1 else n + 1
+        distance = int(n / 2)
+        w, h = self.img.width(), self.img.height()
+
+        new_w, new_h = w - n + 1, h - n + 1
+        new_image = QImage(new_w, new_h, QImage.Format.Format_RGB32)
+
+        image = self._get_img_pixels(w, h)
+        maxed_img = kayn.noise_reduction_max(image, distance, w, h)
+
+        for y in range(new_h):
+            for x in range(new_w):
+                new_image.setPixel(x, y, maxed_img[x + y * new_w])
+
+        return new_image
+
+    def noise_reduction_min(self, n: int = 3) -> QImage:
+        n = n if n % 2 == 1 else n + 1
+        distance = int(n / 2)
         w, h = self.img.width(), self.img.height()
         image = np.array(self.img.bits().asarray(w * h * 4)).reshape(h * w, 4)[:, :3]
         if not self.img.isGrayscale():
