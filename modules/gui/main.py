@@ -1,7 +1,3 @@
-import numpy as np
-import matplotlib.pyplot as plt
-
-
 from PyQt5.QtWidgets import QApplication, QLabel, QMainWindow, QAction, QPushButton
 from PyQt5.QtGui import QIcon, QPixmap, QImage, QFont, QGuiApplication, QMouseEvent
 from PyQt5.QtCore import Qt
@@ -10,6 +6,7 @@ from modules.filters import Filters
 from modules.gui.color_converter import ColorConverter
 import modules.colors_adapter as c_adpt
 import modules.gui.qt_override as qto
+import modules.gui.histogram as hist
 
 
 class MenuAction:
@@ -92,33 +89,6 @@ class MainWindow(QMainWindow):
         qto.display_grid_on_window(self, grid)
 
     # Feature: Display the histogram of the input image
-    def display_histogram(self) -> None:
-
-        hist, bins = self._calculate_image_histogram()
-        plt.bar(bins[:-1], hist, width=2, color="black")
-        plt.title("Histograma")
-        plt.show()
-
-    def _calculate_image_histogram(self) -> tuple[np.ndarray, np.ndarray]:
-        gray_image = self._get_gray_image()
-        image_pixels = self._get_array_of_pixels_from_image(gray_image)
-        hist, bins = np.histogram(image_pixels, bins=255, range=(0, 255))
-        hist = hist / np.max(hist)  # Normalizing
-        return hist, bins
-
-    def _get_array_of_pixels_from_image(self, image: QImage) -> np.ndarray:
-        w, h = image.width(), image.height()
-        pixels = np.zeros((w, h))
-        for x in range(w):
-            for y in range(h):
-                pixel = image.pixel(x, y)
-                pixels[x, y] = c_adpt.get_gray_from_color_integer(pixel)
-        return pixels
-
-    def _get_gray_image(self) -> QImage:
-        f = Filters(img=qto.get_image_from_canvas(self.input_canvas))
-        image: QImage = f.grayscale()
-        return image
 
     # Feature: Display splitted color channels of the input image
     def display_color_channels(self) -> None:
@@ -207,58 +177,37 @@ class MainWindow(QMainWindow):
         color = c_adpt.get_rgb_from_color_integer(pixel_integer)
         return x, y, color
 
+    # fmt: off
     # Feature: Apply filters to the input image.
     def _apply_filter_to_input_image(self, filter: str) -> None:
+        all_filters = {
+            "grayscale": lambda: f.grayscale(),
+            "equalize": lambda: f.equalize(),
+            "negative": lambda: f.negative(),
+            "binarize": lambda: self._try_to_binarize_image(f),
+            "mean": lambda: self._try_to_apply_mean_filter(f),
+            "median": lambda: self._try_to_apply_median_filter(f),
+            "salt_and_pepper": lambda: self._try_to_apply_salt_and_pepper_filter(f),
+            "dynamic_compression": lambda: self._try_to_apply_dynamic_compression_filter(f),
+            "sobel": lambda: f.sobel(),
+            "sobel_magnitudes": lambda: self.display_sobel_magnitudes_filter(f),
+            "laplacian": lambda: f.laplace(),
+            "limiarization": lambda: self._try_to_apply_limiarization_filter(f),
+            "resize": lambda: self._try_to_apply_resize_filter(f),
+            "normalize": lambda: f.normalize(),
+            "gaussian_laplacian": lambda: f.gaussian_laplacian(),
+            "nevatia_babu": lambda: f.nevatia_babu(),
+            "color_scale": lambda: f.gray_to_color_scale(),
+            "noise_reduction_max": lambda: f.noise_reduction_max(),
+            "noise_reduction_min": lambda: f.noise_reduction_min(),
+            "noise_reduction_midpoint": lambda: f.noise_reduction_midpoint(),
+            "cosine_transform": lambda: f.DCT(),
+        }
         f = Filters(qto.get_image_from_canvas(self.input_canvas))
-        output = None
-        if filter == "grayscale":
-            output = f.grayscale()
-        elif filter == "equalize":
-            output = f.equalize()
-        elif filter == "negative":
-            output = f.negative()
-        elif filter == "binarize":
-            output = self._try_to_binarize_image(f)
-        elif filter == "mean":
-            output = self._try_to_apply_mean_filter(f)
-        elif filter == "median":
-            output = self._try_to_apply_median_filter(f)
-        elif filter == "salt_and_pepper":
-            output = self._try_to_apply_salt_and_pepper_filter(f)
-        elif filter == "dynamic_compression":
-            output = self._try_to_apply_dynamic_compression_filter(f)
-        elif filter == "sobel":
-            output = f.sobel()
-        elif filter == "sobel_magnitudes":
-            self.display_sobel_magnitudes_filter(f)
-        elif filter == "laplacian":
-            output = f.laplace()
-        elif filter == "limiarization":
-            output = self._try_to_apply_limiarization_filter(f)
-        elif filter == "resize":
-            output = self._try_to_apply_resize_filter(f)
-        elif filter == "normalize":
-            output = f.normalize()
-        elif filter == "gaussian_laplacian":
-            output = f.gaussian_laplacian()
-        elif filter == "nevatia_babu":
-            output = f.nevatia_babu()
-        elif filter == "color_scale":
-            output = f.gray_to_color_scale()
-        elif filter == "noise_reduction_max":
-            output = f.noise_reduction_max()
-        elif filter == "noise_reduction_min":
-            output = f.noise_reduction_min()
-        elif filter == "noise_reduction_midpoint":
-            output = f.noise_reduction_midpoint()
-        elif filter == "cosine_transform":
-            output = f.DCT()
-        else:
-            pass
-
-        if output:
+        if filter in all_filters:
+            output = all_filters[filter]()
             self._update_output_canvas(output)
-
+    # fmt: on
     def _try_to_apply_mean_filter(self, filtertool: Filters) -> QImage:
         size = self._display_mean_and_median_filter_size_chooser()
         size = size + 1 if size % 2 == 0 else size
@@ -409,10 +358,11 @@ class MainWindow(QMainWindow):
         )
         self._add_actions_to_generic_menu(file_menu, actions)
 
+    # fmt: off
     def _add_actions_to_tools_menu(self, tools_menu):
         display_color_converter = lambda: ColorConverter(self)
         actions = (
-            MenuAction("Histogram", self.display_histogram, "Ctrl+H"),
+            MenuAction("Histogram", lambda: hist.display_histogram(self.input_canvas), "Ctrl+H"),
             MenuAction("Channels", self.display_color_channels, "Ctrl+C"),
             MenuAction("Color Converter", display_color_converter, "Ctrl+R"),
         )
@@ -435,26 +385,21 @@ class MainWindow(QMainWindow):
             MenuAction("Sobel Magnitudes", lambda: f("sobel_magnitudes"), "F12"),
             MenuAction("Salt and Pepper", lambda: f("salt_and_pepper"), "Ctrl+F1"),
             MenuAction("Resize", lambda: f("resize"), "Ctrl+F2"),
-            MenuAction(
-                "Gaussian Laplacian", lambda: f("gaussian_laplacian"), "Ctrl+F3"
-            ),
+            MenuAction("Gaussian Laplacian", lambda: f("gaussian_laplacian"), "Ctrl+F3"),
             MenuAction("Nevatia-Babu", lambda: f("nevatia_babu"), "Ctrl+F4"),
-            #            MenuAction("Laplacian of Gaussian", lambda: f("laplacian_of_gaussian"), "Ctrl+F5"),
+            MenuAction("Laplacian of Gaussian", lambda: f("laplacian_of_gaussian"), "Ctrl+F5"),
             MenuAction("Colorize Gray", lambda: f("color_scale"), "Ctrl+F6"),
             MenuAction("Noise Red. Max", lambda: f("noise_reduction_max"), "Ctrl+F7"),
             MenuAction("Noise Red. Min", lambda: f("noise_reduction_min"), "Ctrl+F8"),
-            MenuAction(
-                "Noise Red. Midpoint", lambda: f("noise_reduction_midpoint"), "Ctrl+F9"
-            ),
+            MenuAction("Noise Red. Midpoint", lambda: f("noise_reduction_midpoint"), "Ctrl+F9"),
             MenuAction("cosine_transform", lambda: f("cosine_transform"), "Ctrl+F10"),
         )
         self._add_actions_to_generic_menu(filters_menu, filters)
-
+    # fmt: on
     def _add_actions_to_generic_menu(self, menu, actions: tuple[MenuAction]):
         for action in actions:
             name, func, shortcut, tooltip = action.get_values()
             act = self._add_submenu(name, func, shortcut, tooltip)
-            # Adding is safe when any of the above parameters is None.
             menu.addAction(act)
 
     # File management
