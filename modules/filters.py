@@ -23,9 +23,15 @@ class Filters:
         image = self._create_new_image(w, h)
         return w, h, image
 
+    def _get_img_pixels(self, w, h):
+        pixels = np.array(self.img.bits().asarray(w * h * 4)).reshape(h * w, 4)[:, :3]
+        return pixels
+
     def grayscale(self) -> QImage:
+        if self.img.isGrayscale():
+            return self.img
         w, h, new_image = self._get_default_elements_to_filters()
-        image = np.array(self.img.bits().asarray(w * h * 4)).reshape(h * w, 4)[:, :3]
+        image = self._get_img_pixels(w, h)
         grayscaled = kayn.grayscale(image)
         for y in range(h):
             for x in range(w):
@@ -43,7 +49,7 @@ class Filters:
 
     def negative(self) -> QImage:
         w, h, new_image = self._get_default_elements_to_filters()
-        image = np.array(self.img.bits().asarray(w * h * 4)).reshape(h * w, 4)[:, :3]
+        image = self._get_img_pixels(w, h)
         negative = kayn.negative(image)
         for y in range(h):
             for x in range(w):
@@ -52,7 +58,7 @@ class Filters:
 
     def binarize(self, limiar: int) -> QImage:
         w, h = self.img.width(), self.img.height()
-        image = np.array(self.img.bits().asarray(w * h * 4)).reshape(h * w, 4)[:, :3]
+        image = self._get_img_pixels(w, h)
         binarized = kayn.binarize(image, limiar)
         new_image = QImage(w, h, QImage.Format.Format_RGB32)
         for y in range(h):
@@ -79,7 +85,7 @@ class Filters:
 
     def equalize(self) -> QImage:
         w, h = self.img.width(), self.img.height()
-        image = np.array(self.img.bits().asarray(w * h * 4)).reshape(h * w, 4)[:, :3]
+        image = self._get_img_pixels(w, h)
         equalized = kayn.equalize(image)
         new_image = QImage(w, h, QImage.Format.Format_RGB32)
         for y in range(h):
@@ -100,7 +106,7 @@ class Filters:
         new_w, new_h = w - n + 1, h - n + 1
         new_image = QImage(new_w, new_h, QImage.Format.Format_RGB32)
 
-        image = np.array(self.img.bits().asarray(w * h * 4)).reshape(h * w, 4)[:, :3]
+        image = self._get_img_pixels(w, h)
         median_img = kayn.median(image, distance, w, h)
 
         for y in range(new_h):
@@ -110,20 +116,20 @@ class Filters:
         return new_image
 
     def dynamic_compression(self, c: float = 1, gama: float = 1) -> QImage:
-        w, h = self.img.width(), self.img.height()
-        image = np.array(self.img.bits().asarray(w * h * 4)).reshape(h * w, 4)[:, :3]
+        w, h, new_image = self._get_default_elements_to_filters()
+        image = self._get_img_pixels(w, h)
         compressed = kayn.dynamic_compression(image, c, gama)
-        new_image = QImage(w, h, QImage.Format.Format_RGB32)
+
         for y in range(h):
             for x in range(w):
                 new_image.setPixel(x, y, compressed[x + y * w])
 
-        normalized = kayn.normalize(compressed)
-        return normalized
+        # normalized = kayn.normalize(new_image)
+        return new_image
 
     def normalize(self, pixels=None) -> QImage:
         w, h = self.img.width(), self.img.height()
-        image = np.array(self.img.bits().asarray(w * h * 4)).reshape(h * w, 4)[:, :3]
+        image = self._get_img_pixels(w, h)
         normalized = kayn.normalize(image)
         new_image = QImage(w, h, QImage.Format.Format_RGB32)
         for y in range(h):
@@ -274,7 +280,7 @@ class Filters:
 
     def limiarization(self, limiar: int) -> QImage:
         w, h = self.img.width(), self.img.height()
-        image = np.array(self.img.bits().asarray(w * h * 4)).reshape(h * w, 4)[:, :3]
+        image = self._get_img_pixels(w, h)
         limiarized = kayn.limiarize(image, limiar)
         new_image = QImage(w, h, QImage.Format.Format_RGB32)
         for y in range(h):
@@ -287,7 +293,7 @@ class Filters:
         f_size = mask.shape[0]
         side = int(f_size**0.5)
 
-        image = np.array(self.img.bits().asarray(w * h * 4)).reshape(h * w, 4)[:, :3]
+        image = self._get_img_pixels(w, h)
         filtered = kayn.filter_nxn(image, mask, w, h)
 
         new_w, new_h = w - side + 1, h - side + 1
