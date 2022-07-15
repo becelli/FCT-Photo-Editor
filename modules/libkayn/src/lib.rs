@@ -2,8 +2,11 @@ use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
 mod operations;
+mod transformations;
+
 type Pixel = [u8; 3];
 type ColorInt = u32;
+
 #[pyfunction]
 fn grayscale(image: Vec<Pixel>) -> PyResult<Vec<ColorInt>> {
     Ok(operations::grayscale(image as Vec<Pixel>))

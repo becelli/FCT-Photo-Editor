@@ -206,7 +206,7 @@ pub fn gray_to_color_scale(image: Vec<Pixel>) -> Vec<ColorInt> {
     let mut new_image: Vec<ColorInt> = Vec::new();
     image.iter().for_each(|pixel| {
         let grey_value = ((pixel[0] as u32 + pixel[1] as u32 + pixel[2] as u32) / 3) as u8;
-        let (r, g, b) : (u8, u8, u8);
+        let (r, g, b): (u8, u8, u8);
         if grey_value < 64 {
             r = 0;
             g = 4 * grey_value;

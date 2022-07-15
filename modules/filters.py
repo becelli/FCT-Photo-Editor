@@ -337,12 +337,48 @@ class Filters:
         n = n if n % 2 == 1 else n + 1
         distance = int(n / 2)
         w, h = self.img.width(), self.img.height()
-        image = np.array(self.img.bits().asarray(w * h * 4)).reshape(h * w, 4)[:, :3]
+
+        new_w, new_h = w - n + 1, h - n + 1
+        new_image = QImage(new_w, new_h, QImage.Format.Format_RGB32)
+
+        image = self._get_img_pixels(w, h)
+        minimal_img = kayn.noise_reduction_min(image, distance, w, h)
+
+        for y in range(new_h):
+            for x in range(new_w):
+                new_image.setPixel(x, y, minimal_img[x + y * new_w])
+
+        return new_image
+
+    def noise_reduction_midpoint(self, n: int = 3) -> QImage:
+        n = n if n % 2 == 1 else n + 1
+        distance = int(n / 2)
+        w, h = self.img.width(), self.img.height()
+
+        new_w, new_h = w - n + 1, h - n + 1
+        new_image = QImage(new_w, new_h, QImage.Format.Format_RGB32)
+
+        image = self._get_img_pixels(w, h)
+        median_img = kayn.noise_reduction_midpoint(image, distance, w, h)
+
+        for y in range(new_h):
+            for x in range(new_w):
+                new_image.setPixel(x, y, median_img[x + y * new_w])
+
+        return new_image
+
+    def DCT(self) -> QImage:
+        # Discrete Cosine Transform
+        w, h, new_image = self._get_default_elements_to_filters()
+        image = self._get_img_pixels(w, h)
+
         if not self.img.isGrayscale():
             self.img = self.grayscale()
-        new_image = QImage(w, h, QImage.Format.Format_RGB32)
-        colorized = kayn.gray_to_color_scale(image)
+
+        norm, transf = kayn.dct(image, w, h)
+        testing = kayn.idct(transf, w, h)
+
         for y in range(h):
             for x in range(w):
-                new_image.setPixel(x, y, colorized[x + y * w])
+                new_image.setPixel(x, y, testing[x + y * w])
         return new_image
