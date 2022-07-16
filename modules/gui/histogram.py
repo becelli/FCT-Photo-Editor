@@ -1,17 +1,36 @@
-import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-from PyQt5.QtGui import QImage
+from PyQt5.QtGui import QImage, QPixmap
+from PyQt5.QtWidgets import QLabel
 import modules.gui.qt_override as qto
 from modules.filters import Filters
+import os
 
 
-def display_histogram(image) -> None:
+def display_histogram(parent, image) -> None:
     hist, bins = calculate_image_histogram(image)
+    plt.figure(figsize=(10, 5))
     plt.style.use("ggplot")
     plt.bar(bins[:-1], hist, width=2, color="black")
     plt.title("Histogram")
-    plt.show()
+    plt.xlabel("Pixel value")
+    plt.ylabel("Frequency (normalized)")
+    plt.savefig("histogram.png", dpi=76)
+    img = QPixmap("histogram.png")
+    os.remove("histogram.png")
+    display_on_screen(parent, img)
+
+
+def display_on_screen(parent, pixmap) -> None:
+    window = qto.QChildWindow(parent, "RGB -> HSL", , 380)
+    window.setStyleSheet("background-color: white;")
+    grid = qto.QGrid()
+    label = QLabel()
+    label.setPixmap(pixmap)
+    grid.addWidget(label, 0, 0)
+    grid.setRowStretch(10, 1)
+    grid.setColumnStretch(2, 1)
+    qto.display_grid_on_window(window, grid)
 
 
 def calculate_image_histogram(image) -> tuple[np.ndarray, np.ndarray]:
