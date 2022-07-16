@@ -1,3 +1,4 @@
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 from PyQt5.QtGui import QImage
@@ -7,6 +8,7 @@ from modules.filters import Filters
 
 def display_histogram(image) -> None:
     hist, bins = calculate_image_histogram(image)
+    plt.style.use("ggplot")
     plt.bar(bins[:-1], hist, width=2, color="black")
     plt.title("Histogram")
     plt.show()
@@ -23,7 +25,6 @@ def calculate_image_histogram(image) -> tuple[np.ndarray, np.ndarray]:
 def get_array_of_pixels_from_image(image: QImage) -> np.ndarray:
     w, h = image.width(), image.height()
     pixels = np.array(image.bits().asarray(w * h * 4))[::4]
-    print(pixels)
     return pixels
 
 
