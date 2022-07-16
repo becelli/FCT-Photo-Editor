@@ -362,7 +362,7 @@ class MainWindow(QMainWindow):
     def _add_actions_to_tools_menu(self, tools_menu):
         display_color_converter = lambda: ColorConverter(self)
         actions = (
-            MenuAction("Histogram", lambda: hist.display_histogram(self.input_canvas), "Ctrl+H"),
+            MenuAction("Histogram", lambda: hist.display_histogram(self, self.input_canvas), "Ctrl+H"),
             MenuAction("Channels", self.display_color_channels, "Ctrl+C"),
             MenuAction("Color Converter", display_color_converter, "Ctrl+R"),
         )

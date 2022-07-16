@@ -22,7 +22,7 @@ def display_histogram(parent, image) -> None:
 
 
 def display_on_screen(parent, pixmap) -> None:
-    window = qto.QChildWindow(parent, "RGB -> HSL", , 380)
+    window = qto.QChildWindow(parent, "Histogram", 765, 400)
     window.setStyleSheet("background-color: white;")
     grid = qto.QGrid()
     label = QLabel()
