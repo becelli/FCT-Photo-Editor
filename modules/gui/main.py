@@ -303,7 +303,8 @@ class MainWindow(QMainWindow):
         qto.put_pixmap_on_canvas(self.input_canvas, pixmap)
 
     def _update_output_canvas(self, new_image: QImage):
-        qto.put_image_on_canvas(self.output_canvas, new_image)
+        if new_image is not None:
+            qto.put_image_on_canvas(self.output_canvas, new_image)
 
     # Qt Manipulations
     def _create_canvas(
