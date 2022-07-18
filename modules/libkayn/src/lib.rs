@@ -109,6 +109,17 @@ fn idct(
     ))
 }
 
+#[pyfunction]
+fn otsu_thresholding(
+    image: Vec<Pixel>, 
+    width:u32, 
+    height:u32
+) -> PyResult<u8>{
+    Ok(operations::otsu_thresholding(
+        image, width, height
+    ))
+}
+
 #[pymodule]
 fn libkayn(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(grayscale, m)?)?;
@@ -126,5 +137,6 @@ fn libkayn(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(noise_reduction_midpoint, m)?)?;
     m.add_function(wrap_pyfunction!(dct, m)?)?;
     m.add_function(wrap_pyfunction!(idct, m)?)?;
+    m.add_function(wrap_pyfunction!(otsu_thresholding, m)?)?;
     Ok(())
 }

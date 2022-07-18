@@ -344,3 +344,37 @@ pub fn noise_reduction_midpoint(
     }
     new_image
 }
+
+pub fn otsu_thresholding(image: Vec<Pixel>, width: u32, height: u32) -> u8{
+    let max_gray_value = 255 as u8;
+    let mut global_average = 0 as f32;
+    let mut max_ni = 0 as f32;
+    let mut limiar_candidate = 0 as u8;
+    let mut gray_shade_frequency: [f32; 256] = [0.0; 256];
+    let image_size = width*height as u32;
+    image.iter().for_each(|pixel|{    
+	    gray_shade_frequency[((pixel[0] as u32 + pixel[1] as u32 + pixel[2] as u32) / 3) as usize] += 1.0;
+	});
+    for i in 0..=max_gray_value{
+        gray_shade_frequency[i as usize] = gray_shade_frequency[i as usize]/(image_size as f32);
+        global_average += gray_shade_frequency[i as usize]*i as f32;
+    }
+    //in this loop, i equals t from the OTSU threshold method
+    for i in 0..=max_gray_value{
+        let mut threshold_average = 0 as f32;
+        let mut threshold_ratio = 0 as f32;
+        for j in 0..=i{
+            threshold_ratio += gray_shade_frequency[j as usize];
+            threshold_average += gray_shade_frequency[j as usize]*j as f32;
+        }
+        let average_0: f32 = threshold_average/threshold_ratio;
+        let complementary_threshold_ratio: f32 = 1.0 - threshold_ratio;
+        let average_1: f32 = (global_average-threshold_average) / complementary_threshold_ratio;
+        let threshold_std_deviation: f32 = threshold_ratio * complementary_threshold_ratio * (average_0 - average_1).powf(2.0);
+        if threshold_std_deviation > max_ni {
+            max_ni = threshold_std_deviation;
+            limiar_candidate = i;
+        }
+    }
+    limiar_candidate
+}

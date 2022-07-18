@@ -376,3 +376,18 @@ class Filters:
             for x in range(w):
                 new_image.setPixel(x, y, testing[x + y * w])
         return new_image
+
+    def otsu_thresholding(self) -> QImage:
+        w, h = self.img.width(), self.img.height()
+        image = self._get_img_pixels(w, h)
+        
+        if not self.img.isGrayscale():
+            self.img = self.grayscale()
+        
+        limiar = kayn.otsu_thresholding(image, w, h)
+        limiarized = kayn.limiarize(image, limiar)
+        new_image = QImage(w, h, QImage.Format.Format_RGB32)
+        for y in range(h):
+            for x in range(w):
+                new_image.setPixel(x, y, limiarized[x + y * w])
+        return new_image
