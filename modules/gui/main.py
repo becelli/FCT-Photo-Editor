@@ -202,7 +202,8 @@ class MainWindow(QMainWindow):
             "noise_reduction_min": lambda: f.noise_reduction_min(),
             "noise_reduction_midpoint": lambda: f.noise_reduction_midpoint(),
             "cosine_transform": lambda: f.DCT(),
-            "otsu_thresholding": lambda: f.otsu_thresholding(),
+            "otsu_binarization": lambda: f.otsu_binarization(),
+            "otsu_limiarization": lambda: f.otsu_limiarization(),
         }
         f = Filters(qto.get_image_from_canvas(self.input_canvas))
         if filter in all_filters:
@@ -395,7 +396,8 @@ class MainWindow(QMainWindow):
             MenuAction("Noise Red. Min", lambda: f("noise_reduction_min"), "Ctrl+F8"),
             MenuAction("Noise Red. Midpoint", lambda: f("noise_reduction_midpoint"), "Ctrl+F9"),
             MenuAction("cosine_transform", lambda: f("cosine_transform"), "Ctrl+F10"),
-            MenuAction("OTSU thresholding", lambda: f("otsu_thresholding"), "Ctrl+F11"),
+            MenuAction("OTSU binarization", lambda: f("otsu_binarization"), "Ctrl+F11"),
+            MenuAction("OTSU limiarization", lambda: f("otsu_limiarization"), "Ctrl+F12"),
         )
         self._add_actions_to_generic_menu(filters_menu, filters)
     # fmt: on
