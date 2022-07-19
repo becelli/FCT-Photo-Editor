@@ -95,17 +95,15 @@ fn noise_reduction_midpoint(
 
 #[pyfunction]
 fn dct(image: Vec<Pixel>, width: u32, height: u32) -> PyResult<(Vec<ColorInt>, Vec<f32>)> {
-    Ok(transformations::dct(image, width, height))
+    Ok(transformations::dct_multithread(image, width, height))
 }
 
 #[pyfunction]
-fn idct(
-    coefficients: Vec<f32>,
-    width: u32,
-    height: u32,
-) -> PyResult<Vec<ColorInt>> {
-    Ok(transformations::idct(
-        coefficients, width, height,
+fn idct(coefficients: Vec<f32>, width: u32, height: u32) -> PyResult<Vec<ColorInt>> {
+    Ok(transformations::idct_multithread(
+        coefficients,
+        width,
+        height,
     ))
 }
 

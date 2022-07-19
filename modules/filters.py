@@ -361,18 +361,29 @@ class Filters:
 
         return new_image
 
-    def DCT(self) -> QImage:
+    @staticmethod
+    def DCT(image) -> tuple[QImage, np.ndarray]:
         # Discrete Cosine Transform
-        w, h, new_image = self._get_default_elements_to_filters()
-        image = self._get_img_pixels(w, h)
+        f = Filters(image)
+        w, h, new_image = f._get_default_elements_to_filters()
 
-        if not self.img.isGrayscale():
-            self.img = self.grayscale()
+        if not image.isGrayscale():
+            image = f.grayscale()
 
-        norm, transf = kayn.dct(image, w, h)
-        testing = kayn.idct(transf, w, h)
+        image = f._get_img_pixels(w, h)
+
+        norm, coeffs = kayn.dct(image, w, h)
 
         for y in range(h):
             for x in range(w):
-                new_image.setPixel(x, y, testing[x + y * w])
-        return new_image
+                new_image.setPixel(x, y, norm[x + y * w])
+        return new_image, coeffs
+
+    @staticmethod
+    def IDCT(coeffs, width, height) -> QImage:
+        image = QImage(width, height, QImage.Format.Format_RGB32)
+        norm = kayn.idct(coeffs, width, height)
+        for x in range(width):
+            for y in range(height):
+                image.setPixel(x, y, norm[x + y * width])
+        return image

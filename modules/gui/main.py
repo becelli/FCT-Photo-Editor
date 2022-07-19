@@ -66,10 +66,10 @@ class MainWindow(QMainWindow):
     def display_main_content(self):
         grid = qto.QGrid()
 
-        input_label, self.input_canvas = self._create_canvas("Input")
+        input_label, self.input_canvas = qto.create_label_and_canvas("Input")
         self._set_mouse_tracking_to_show_pixel_details(self.input_canvas)
 
-        output_label, self.output_canvas = self._create_canvas("Output")
+        output_label, self.output_canvas = qto.create_label_and_canvas("Output")
         self._set_mouse_tracking_to_show_pixel_details(self.output_canvas)
 
         apply_changes_button = self._create_apply_changes_button()
