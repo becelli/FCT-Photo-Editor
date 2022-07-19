@@ -6,6 +6,7 @@ from modules.filters import Filters
 from modules.gui.color_converter import ColorConverter
 import modules.colors_adapter as c_adpt
 import modules.gui.qt_override as qto
+import modules.gui.frequencyd as freqd
 import modules.gui.histogram as hist
 
 
@@ -366,6 +367,7 @@ class MainWindow(QMainWindow):
             MenuAction("Histogram", lambda: hist.display_histogram(self, self.input_canvas), "Ctrl+H"),
             MenuAction("Channels", self.display_color_channels, "Ctrl+C"),
             MenuAction("Color Converter", display_color_converter, "Ctrl+R"),
+            MenuAction("Frequency Domain (Cosine)", lambda: freqd.FreqDomain(self, self.input_canvas, self.output_canvas), "Ctrl+F"),
         )
         self._add_actions_to_generic_menu(tools_menu, actions)
 
