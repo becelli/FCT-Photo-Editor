@@ -111,7 +111,7 @@ class MainWindow(QMainWindow):
     def _add_channels_to_grid(self, grid: qto.QGrid) -> None:
         colors = ["red", "green", "blue"]
         for i, color in enumerate(colors):
-            label, canvas = self._create_canvas(colors[i], 320, 240)
+            label, canvas = qto.create_label_and_canvas(colors[i], 320, 240)
             self._insert_isolated_color_channel_into_canvas(color, canvas)
             self._get_styled_label_with_color(color, label)
             grid.addWidget(label, 0, i)
@@ -306,18 +306,6 @@ class MainWindow(QMainWindow):
     def _update_output_canvas(self, new_image: QImage):
         if new_image is not None:
             qto.put_image_on_canvas(self.output_canvas, new_image)
-
-    # Qt Manipulations
-    def _create_canvas(
-        self, name: str = "Canvas", xscale: int = 0, yscale: int = 0
-    ) -> tuple[QLabel, QLabel]:
-        label = qto.QObjects.label(name)
-        label.setFont(QFont("Monospace", 16))
-        canvas = qto.QObjects.canvas(320, 240)
-        if xscale != 0 and yscale != 0:
-            canvas.setScaledContents(True)
-            canvas.setFixedSize(xscale, yscale)
-        return label, canvas
 
     def _create_apply_changes_button(self) -> QPushButton:
         button = qto.QObjects.button(

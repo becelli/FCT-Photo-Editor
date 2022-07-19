@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import (
     QPushButton,
     QInputDialog,
 )
-from PyQt5.QtGui import QPixmap, QImage, QColor
+from PyQt5.QtGui import QPixmap, QImage, QColor, QFont
 from PyQt5.QtCore import Qt
 
 
@@ -164,3 +164,14 @@ def display_float_input_dialog(
     if dialog.result() == QInputDialog.DialogCode.Accepted:
         return dialog.doubleValue()
     return -1
+
+
+def create_label_and_canvas(name: str = "Canvas", xscale: int = 0, yscale: int = 0):
+    label = QObjects.label(name)
+    label.setFont(QFont("Monospace", 16))
+    canvas = QObjects.canvas(320, 240)
+    if xscale != 0 and yscale != 0:
+        canvas.setScaledContents(True)
+        canvas.setFixedSize(xscale, yscale)
+    return label, canvas
+
