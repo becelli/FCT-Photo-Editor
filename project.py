@@ -21,17 +21,13 @@ class OS:
     
     def install_deps(self):
         print("Try to install dependencies...")
-        print("pip3 install -r requirements.txt")
+        print("python -m pip install -r requirements.txt")
         try:
-            os.system("pip3 install -r requirements.txt")
+            os.system("python -m pip install -r requirements.txt")
         except:
             print("Failed to install dependencies")
-            try:
-                os.system("python3 -m pip install -r requirements.txt")
-            except:
-                print("Failed to install dependencies")
-                print("Please install dependencies manually")
-                sys.exit(1)
+            print("Please install dependencies manually")
+            sys.exit(1)
                 
 
 class Linux(OS):
