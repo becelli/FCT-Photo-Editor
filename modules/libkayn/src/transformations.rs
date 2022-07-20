@@ -144,7 +144,6 @@ pub fn dct_multithread(image: Vec<Pixel>, width: u32, height: u32) -> (Vec<Color
         coeff.extend(h.join().unwrap());
     }
     let normalized = normalize_cosine(&coeff);
-
     (normalized, coeff)
 }
 
@@ -154,7 +153,7 @@ pub fn idct_multithread(coeff: Vec<f32>, width: u32, height: u32) -> Vec<ColorIn
     let mut handles = vec![];
     let mut i = 0;
     while i < num_cpus {
-        let coeff_clone = coeff.clone(); // rust forces
+        let coeff_clone = coeff.clone();
         handles.push(thread::spawn(move || {
             let mut new_image_clone = vec![];
             let (mut ci, mut cj): (f32, f32);
@@ -184,7 +183,8 @@ pub fn idct_multithread(coeff: Vec<f32>, width: u32, height: u32) -> Vec<ColorIn
                             sum += dctl * ci * cj;
                         }
                     }
-                    let color = get_color_integer_from_rgb(sum as u8, sum as u8, sum as u8);
+                    let rounded = sum.round() as u8;
+                    let color = get_color_integer_from_rgb(rounded, rounded, rounded);
                     new_image_clone.push(color);
                 }
             }
@@ -194,6 +194,28 @@ pub fn idct_multithread(coeff: Vec<f32>, width: u32, height: u32) -> Vec<ColorIn
     }
     for h in handles {
         new_image.extend(h.join().unwrap());
+    }
+    new_image
+}
+
+pub fn resize_nearest_neighbor(
+    image: Vec<Pixel>,
+    width: u32,
+    height: u32,
+    new_width: u32,
+    new_height: u32,
+) -> Vec<ColorInt> {
+    let mut new_image: Vec<ColorInt> = Vec::new();
+    let x_ratio = width as f32 / new_width as f32;
+    let y_ratio = height as f32 / new_height as f32;
+    for j in 0..new_height {
+        for i in 0..new_width {
+            let x = (i as f32 * x_ratio) as u32;
+            let y = (j as f32 * y_ratio) as u32;
+            let color = image[(y * width + x) as usize];
+            let value = get_color_integer_from_rgb(color[0], color[1], color[2]);
+            new_image.push(value);
+        }
     }
     new_image
 }

@@ -108,13 +108,15 @@ fn idct(coefficients: Vec<f32>, width: u32, height: u32) -> PyResult<Vec<ColorIn
 }
 
 #[pyfunction]
-fn otsu_thresholding(
-    image: Vec<Pixel>, 
-    width:u32, 
-    height:u32
-) -> PyResult<u8>{
-    Ok(operations::otsu_thresholding(
-        image, width, height
+fn resize_nn(
+    image: Vec<Pixel>,
+    width: u32,
+    height: u32,
+    new_width: u32,
+    new_height: u32,
+) -> PyResult<Vec<ColorInt>> {
+    Ok(transformations::resize_nearest_neighbor(
+        image, width, height, new_width, new_height,
     ))
 }
 
@@ -135,6 +137,6 @@ fn libkayn(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(noise_reduction_midpoint, m)?)?;
     m.add_function(wrap_pyfunction!(dct, m)?)?;
     m.add_function(wrap_pyfunction!(idct, m)?)?;
-    m.add_function(wrap_pyfunction!(otsu_thresholding, m)?)?;
+    m.add_function(wrap_pyfunction!(resize_nn, m)?)?;
     Ok(())
 }

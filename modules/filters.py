@@ -121,7 +121,7 @@ class Filters:
         # normalized = kayn.normalize(new_image)
         return new_image
 
-    def normalize(self, pixels=None) -> QImage:
+    def normalize(self) -> QImage:
         w, h = self.img.width(), self.img.height()
         image = self._get_img_pixels(w, h)
         normalized = kayn.normalize(image)
@@ -187,90 +187,30 @@ class Filters:
         normalized_img = self.normalize()
         return normalized_img
 
+    # fmt: off
     def gaussian_laplacian(self) -> QImage:
         mask = np.array(
             [
-                0,
-                0,
-                -1,
-                0,
-                0,
-                0,
-                -1,
-                -2,
-                -1,
-                0,
-                -1,
-                -2,
-                16,
-                -2,
-                -1,
-                0,
-                -1,
-                -2,
-                -1,
-                0,
-                0,
-                0,
-                -1,
-                0,
-                0,
+                 0,  0, -1,  0,  0,
+                 0, -1, -2, -1,  0,
+                -1, -2, 16, -2, -1,
+                 0, -1, -2, -1,  0,
+                 0,  0, -1,  0,  0,
             ]
         ) / np.float64(16)
         self.img = self.filter_NxN(mask)
         normalized_img = self.normalize()
         return normalized_img
 
-    def nevatia_babu(self) -> QImage:
-        mask = np.array(
-            [
-                100,
-                100,
-                0,
-                100,
-                100,
-                100,
-                100,
-                0,
-                100,
-                100,
-                100,
-                100,
-                0,
-                100,
-                100,
-                100,
-                100,
-                0,
-                100,
-                100,
-                100,
-                100,
-                0,
-                100,
-                100,
-            ]
-        ) / np.float64(1000)
-        self.img = self.filter_NxN(mask)
-        normalized_img = self.normalize()
-        return normalized_img
-
-    def resize_nearest_neighbor(self, w: int, h: int) -> QImage:
-        image = self._create_new_image(w, h)
-        ratio_x = self.img.width() / w
-        ratio_y = self.img.height() / h
-        for x in range(w):
-            for y in range(h):
-                new_pixel = self._resize_nearest_neighbor_pixel(x, y, ratio_x, ratio_y)
-                image.setPixel(x, y, new_pixel)
-        return image
-
-    def _resize_nearest_neighbor_pixel(
-        self, x: int, y: int, ratio_x: float, ratio_y: float
-    ) -> QImage:
-        x_ = int(x * ratio_x)
-        y_ = int(y * ratio_y)
-        return self.img.pixel(x_, y_)
+    def resize_nearest_neighbor(self, new_width: int, new_height: int) -> QImage:
+        w, h = self.img.width(), self.img.height()
+        image = self._get_img_pixels(w, h)
+        new_image = QImage(new_width, new_height, QImage.Format.Format_RGB32)
+        resized = kayn.resize_nn(image, w, h, new_width, new_height)
+        for y in range(new_height):
+            for x in range(new_width):
+                new_image.setPixel(x, y, resized[x + y * new_width])
+        return new_image
 
     def limiarization(self, limiar: int) -> QImage:
         w, h = self.img.width(), self.img.height()
@@ -362,16 +302,13 @@ class Filters:
         return new_image
 
     @staticmethod
-    def DCT(image) -> tuple[QImage, np.ndarray]:
-        # Discrete Cosine Transform
+    def DCT(image) -> tuple[QImage, np.ndarray]:        
         f = Filters(image)
-        w, h, new_image = f._get_default_elements_to_filters()
-
         if not image.isGrayscale():
-            image = f.grayscale()
-
+            f.img = f.grayscale()
+        
+        w, h, new_image = f._get_default_elements_to_filters()
         image = f._get_img_pixels(w, h)
-
         norm, coeffs = kayn.dct(image, w, h)
 
         for y in range(h):
