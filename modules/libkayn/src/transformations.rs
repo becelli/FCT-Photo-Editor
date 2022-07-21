@@ -258,7 +258,7 @@ pub fn resize_nearest_neighbor(
             let x = (i as f32 * x_ratio) as u32;
             let y = (j as f32 * y_ratio) as u32;
             let color = image[(y * width + x) as usize];
-            let value = get_color_integer_from_rgb(color[0], color[1], color[2]);
+            let value = get_color_integer_from_rgb(color[2], color[1], color[0]);
             new_image.push(value);
         }
     }

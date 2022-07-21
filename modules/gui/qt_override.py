@@ -174,4 +174,3 @@ def create_label_and_canvas(name: str = "Canvas", xscale: int = 0, yscale: int =
         canvas.setScaledContents(True)
         canvas.setFixedSize(xscale, yscale)
     return label, canvas
-
