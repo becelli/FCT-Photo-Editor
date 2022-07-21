@@ -204,6 +204,7 @@ class MainWindow(QMainWindow):
             "noise_reduction_midpoint": lambda: f.noise_reduction_midpoint(),
             "otsu_binarization": lambda: f.otsu_binarization(),
             "otsu_limiarization": lambda: f.otsu_limiarization(),
+            "hsl_equalization": lambda: f.hsl_equalization(),
         }
         f = Filters(qto.get_image_from_canvas(self.input_canvas))
         if filter in all_filters:
@@ -385,6 +386,7 @@ class MainWindow(QMainWindow):
             MenuAction("Noise Red. Midpoint", lambda: f("noise_reduction_midpoint"), "Ctrl+F8"),
             MenuAction("OTSU Binarize", lambda: f("otsu_binarization"), "Ctrl+F9"),
             MenuAction("OTSU Limiarize", lambda: f("otsu_limiarization"), "Ctrl+F10"),
+            MenuAction("HSL Equalization", lambda: f("hsl_equalization"), "Ctrl+F11"),
         )
         self._add_actions_to_generic_menu(filters_menu, filters)
     # fmt: on
