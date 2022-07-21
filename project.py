@@ -9,9 +9,11 @@ class OS:
         self.execute_python = None
         self.compile_python = None
 
-    def dev_build(self):
+    def lib_build(self):
         os.system(self.rust_build)
         os.system(self.copy_lib)
+
+    def dev_build(self):
         os.system(self.execute_python)
     
     def release_build(self):
@@ -67,11 +69,14 @@ if __name__ == "__main__":
         sys.exit(1)
 
     if len(sys.argv) > 1:
-        if sys.argv[1] == "dev" or sys.argv[1] == "run":
+        if sys.argv[1] == "dev":
+            system.dev_build()
+        if sys.argv[1] == "devb":
+            system.lib_build()
             system.dev_build()
         elif sys.argv[1] == "release":
             system.release_build()
-        elif sys.argv[1] == "dep":
+        elif sys.argv[1] == "install":
             system.install_deps()            
         else:
             print("Unsupported argument")
