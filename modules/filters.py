@@ -360,7 +360,7 @@ class Filters:
         if not self.img.isGrayscale():
             self.img = self.grayscale()
 
-        limiar = kayn.otsu_thresholding(image, w, h)
+        limiar = kayn.otsu_threshold(image, w, h)
         binarized = kayn.binarize(image, limiar)
         new_image = QImage(w, h, QImage.Format.Format_RGB32)
         for y in range(h):
@@ -375,7 +375,7 @@ class Filters:
         if not self.img.isGrayscale():
             self.img = self.grayscale()
 
-        limiar = kayn.otsu_thresholding(image, w, h)
+        limiar = kayn.otsu_threshold(image, w, h)
         limiarized = kayn.limiarize(image, limiar)
         new_image = QImage(w, h, QImage.Format.Format_RGB32)
         for y in range(h):

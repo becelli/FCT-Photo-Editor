@@ -331,10 +331,10 @@ pub fn noise_reduction_midpoint(
 }
 
 pub fn otsu_thresholding(image: Vec<Pixel>, width: u32, height: u32) -> u8 {
-    let max_gray_value = 255 as u8;
-    let mut global_average = 0 as f32;
-    let mut max_ni = 0 as f32;
-    let mut limiar_candidate = 0 as u8;
+    let max_gray_value = 255u8;
+    let mut global_average = 0f32;
+    let mut max_ni = 0f32;
+    let mut limiar_candidate = 0u8;
     let mut gray_shade_frequency: [f32; 256] = [0.0; 256];
     let image_size = width * height as u32;
     image.iter().for_each(|pixel| {

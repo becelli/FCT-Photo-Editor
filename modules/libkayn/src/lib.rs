@@ -92,6 +92,10 @@ fn noise_reduction_midpoint(
         image, distance, width, height,
     ))
 }
+#[pyfunction]
+fn otsu_threshold(image: Vec<Pixel>, width: u32, height: u32) -> PyResult<u8> {
+    Ok(operations::otsu_thresholding(image, width, height))
+}
 
 #[pyfunction]
 fn dct(image: Vec<Pixel>, width: u32, height: u32) -> PyResult<(Vec<ColorInt>, Vec<f32>)> {
@@ -157,6 +161,7 @@ fn libkayn(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(noise_reduction_max, m)?)?;
     m.add_function(wrap_pyfunction!(noise_reduction_min, m)?)?;
     m.add_function(wrap_pyfunction!(noise_reduction_midpoint, m)?)?;
+    m.add_function(wrap_pyfunction!(otsu_threshold, m)?)?;
     m.add_function(wrap_pyfunction!(dct, m)?)?;
     m.add_function(wrap_pyfunction!(idct, m)?)?;
     m.add_function(wrap_pyfunction!(resize_nn, m)?)?;
