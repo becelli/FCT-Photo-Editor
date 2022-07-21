@@ -77,13 +77,13 @@ class QChildWindow(QMainWindow):
 class QDialogs(QWidget):
     def get_open_path(self):
         filename, _ = QFileDialog.getOpenFileName(
-            self, "Open Image", "", "Image Files (*.png *.jpg *.bmp)"
+            self, "Open Image", "", "Image Files (*.png *.jpg *.bmp *.gif *tif *.tiff)"
         )
         return filename
 
     def get_save_path(self):
         filename, _ = QFileDialog.getSaveFileName(
-            self, "Save Image", "image.bmp", "Image Files (*.png *.jpg *.bmp)"
+            self, "Save Image", "img.bmp", "Image Files (*.png *.jpg *.bmp *.gif)"
         )
         return filename
 

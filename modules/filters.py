@@ -324,6 +324,34 @@ class Filters:
             for y in range(height):
                 image.setPixel(x, y, norm[x + y * width])
         return image
+    
+    @staticmethod
+    def lowpass(coeffs, width, height, radius) -> tuple[QImage, np.ndarray]:
+        norm, new_coeffs = kayn.freq_lowpass(coeffs, width, height, radius)
+        new_image = Filters.IDCT(new_coeffs, width, height)
+        for x in range(width):
+            for y in range(height):
+                new_image.setPixel(x, y, norm[x + y *  width])
+        return new_image, new_coeffs
+    
+    @staticmethod
+    def highpass(coeffs, width, height, radius) -> tuple[QImage, np.ndarray]:
+        norm, new_coeffs = kayn.freq_highpass(coeffs, width, height, radius)
+        new_image = Filters.IDCT(new_coeffs, width, height)
+        for x in range(width):
+            for y in range(height):
+                new_image.setPixel(x, y, norm[x + y *  width])
+        return new_image, new_coeffs
+    
+    @staticmethod
+    def get_freq_norm(coeffs, width, height) -> QImage:
+        norm = kayn.freq_normalize(coeffs)
+        new_image = QImage(width, height, QImage.Format.Format_RGB32)
+        for x in range(width):
+            for y in range(height):
+                new_image.setPixel(x, y, norm[x + y *  width])
+        return new_image
+
 
     def otsu_binarization(self) -> QImage:
         w, h = self.img.width(), self.img.height()

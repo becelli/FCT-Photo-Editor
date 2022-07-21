@@ -119,6 +119,28 @@ fn resize_nn(
         image, width, height, new_width, new_height,
     ))
 }
+#[pyfunction]
+fn freq_lowpass(
+    image: Vec<f32>,
+    width: u32,
+    height: u32,
+    radius: u32,
+) -> PyResult<(Vec<ColorInt>, Vec<f32>)> {
+    Ok(transformations::freq_lowpass(image, width, height, radius))
+}
+#[pyfunction]
+fn freq_highpass(
+    image: Vec<f32>,
+    width: u32,
+    height: u32,
+    radius: u32,
+) -> PyResult<(Vec<ColorInt>, Vec<f32>)> {
+    Ok(transformations::freq_highpass(image, width, height, radius))
+}
+#[pyfunction]
+fn freq_normalize(image: Vec<f32>) -> PyResult<Vec<ColorInt>> {
+    Ok(transformations::freq_normalize(image))
+}
 
 #[pymodule]
 fn libkayn(_py: Python, m: &PyModule) -> PyResult<()> {
@@ -138,5 +160,9 @@ fn libkayn(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(dct, m)?)?;
     m.add_function(wrap_pyfunction!(idct, m)?)?;
     m.add_function(wrap_pyfunction!(resize_nn, m)?)?;
+    m.add_function(wrap_pyfunction!(freq_lowpass, m)?)?;
+    m.add_function(wrap_pyfunction!(freq_highpass, m)?)?;
+    m.add_function(wrap_pyfunction!(freq_normalize, m)?)?;
+
     Ok(())
 }
