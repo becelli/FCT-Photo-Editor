@@ -382,3 +382,14 @@ class Filters:
             for x in range(w):
                 new_image.setPixel(x, y, limiarized[x + y * w])
         return new_image
+
+    def hsl_equalization(self) -> QImage:
+        w, h = self.img.width(), self.img.height()
+        image = self._get_img_pixels(w, h)
+
+        equalized = kayn.equalize_hsl(image)
+        new_image = QImage(w, h, QImage.Format.Format_RGB32)
+        for y in range(h):
+            for x in range(w):
+                new_image.setPixel(x, y, equalized[x + y * w])
+        return new_image

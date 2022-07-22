@@ -1,3 +1,5 @@
+use core::cmp::min;
+use core::cmp::max;
 type Pixel = [u8; 3];
 type ColorInt = u32;
 
@@ -8,6 +10,76 @@ pub fn get_color_integer_from_rgb(r: u8, g: u8, b: u8) -> ColorInt {
 pub fn get_color_integer_from_gray(gray: u8) -> ColorInt {
     (gray as u32) << 16 | (gray as u32) << 8 | (gray as u32)
 }
+
+pub fn _convert_rgb_to_hsl(pixel: Pixel) -> Pixel{
+    /* 
+    Convert to microsoft's hsl
+    where h is 0-239, s is 0-240, l is 0-240
+    and the rgb values are 0-255
+    */
+    let (r, g, b) = (pixel[0] as f32 / 255.0, pixel[1] as f32 / 255.0, pixel[2] as f32 / 255.0);
+    let mx = max(pixel[0], max(pixel[1], pixel[2])) as f32;
+    let mn = min(pixel[0], min(pixel[1], pixel[2])) as f32;
+    let mut h: f32;
+    let mut s: f32 = 0.0;
+    let l: f32 = (mx + mn) / 2.0;
+
+    let d: f32 = mx - mn;
+    if d == 0.0{
+        h = 0.0;
+    }
+    else if mx == r{
+        h = ((g - b) / d) / 6.0;
+    }else if mx == g{
+        h = (b - r) / d + 2.0;
+    }else{
+        h = (r - g) / d + 4.0;
+    }
+    h = h * 40.0;
+
+    if h < 0.0{
+        h += 240.0;
+    }
+    if d != 0.0{
+        s = d / (1.0 - (2.0 * l - 1.0).abs());
+    }
+    let hsl: Pixel = [h as u8, (s*240.0) as u8, (l*240.0) as u8];
+    hsl
+}
+
+pub fn _convert_hsl_to_rgb(pixel: Pixel) -> ColorInt{
+    /*
+    Convert from HSL to RGB
+    where h is 0-239, s is 0-240, l is 0-240
+    and the rgb values are 0-255
+    */
+    let mut r:f32;
+    let mut g:f32;
+    let mut b:f32;
+    let (h, s, l) = (pixel[0] as f32, pixel[1] as f32 / 240.0, pixel[2] as f32 / 240.0);
+
+    let c:f32 = (1.0 - (2.0 * l - 1.0).abs()) * s as f32;
+    let x:f32 = c * (1 - ((h as i32 / 40) % 2 - 1 as i32).abs() ) as f32;
+    let m:f32 = l - c / 2.0;
+
+    if h < 40.0{
+        (r, g, b) = (c, x, 0.0)
+    }else if h < 80.0{
+        (r, g, b) = (x, c, 0.0)
+    }else if h < 120.0{
+        (r, g, b) = (0.0, c, x)
+    }else if h < 160.0{
+        (r, g, b) = (0.0, x, c)
+    }else if h < 200.0{
+        (r, g, b) = (x, 0.0, c)
+    }else{
+        (r, g, b) = (c, 0.0, x)
+    }
+    (r, g, b) = ((r + m) * 255.0, (g + m) * 255.0, (b + m) * 255.0);
+    let rgb = get_color_integer_from_rgb(r as u8, g as u8, b as u8);
+    rgb
+}
+
 
 pub fn grayscale(image: Vec<Pixel>) -> Vec<ColorInt> {
     let mut new_image: Vec<ColorInt> = Vec::new();
@@ -364,4 +436,31 @@ pub fn otsu_thresholding(image: Vec<Pixel>, width: u32, height: u32) -> u8 {
         }
     }
     limiar_candidate
+}
+
+pub fn equalize_hsl(image: Vec<Pixel>) -> Vec<ColorInt> {
+    let mut histogram: Vec<u32> = vec![0; 256];
+    let mut hsl_image: Vec<Pixel> = Vec::new();
+    image.iter().for_each(|pixel| {
+        let organized_pixel: Pixel = [pixel[2], pixel[1], pixel[0]];
+        let hsl_pixel: Pixel = _convert_rgb_to_hsl(organized_pixel);
+        let l = hsl_pixel[2] as u8;
+        histogram[l as usize] += 1;
+        hsl_image.push(hsl_pixel);
+    });
+    let mut sum: u32 = 0;
+    let mut new_histogram: Vec<u32> = vec![0; 256];
+    histogram.iter().enumerate().for_each(|(i, count)| {
+        sum += *count;
+        new_histogram[i] = sum;
+    });
+    let mut equalized_image: Vec<ColorInt> = Vec::new();
+    hsl_image.iter().for_each(|pixel| {
+        let new_l = (new_histogram[pixel[2] as usize] * 239) / sum;
+        let new_pixel: Pixel = [pixel[0] as u8, pixel[1] as u8, new_l as u8];
+        let color: ColorInt = _convert_hsl_to_rgb(new_pixel);
+        equalized_image.push(color);
+    });
+    //println!(equalized_image);
+    equalized_image
 }
