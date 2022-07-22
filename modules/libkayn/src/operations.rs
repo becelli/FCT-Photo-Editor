@@ -1,5 +1,7 @@
+use super::transformations;
 use core::cmp::max;
 use core::cmp::min;
+use std::thread;
 type Pixel = [u8; 3];
 type ColorInt = u32;
 
@@ -9,6 +11,10 @@ pub fn get_color_integer_from_rgb(r: u8, g: u8, b: u8) -> ColorInt {
 
 pub fn get_color_integer_from_gray(gray: u8) -> ColorInt {
     (gray as u32) << 16 | (gray as u32) << 8 | (gray as u32)
+}
+
+pub fn get_gray_from_color_integer(color_integer: ColorInt) -> u8 {
+    (color_integer >> 16) as u8
 }
 
 pub fn _convert_rgb_to_hsl(pixel: Pixel) -> Pixel {
@@ -109,46 +115,83 @@ pub fn negative(image: Vec<Pixel>) -> Vec<ColorInt> {
     new_image
 }
 
-pub fn filter_nxn(image: Vec<Pixel>, filter: Vec<f32>, width: u32, height: u32) -> Vec<ColorInt> {
-    let f_size = filter.len() as u32;
-    let f_side = (f_size as f32).sqrt().round() as u32;
-    let half = (f_side / 2) as u32;
-    let mut new_image: Vec<ColorInt> = Vec::new();
+pub fn convolute(image: Vec<Pixel>, mask: Vec<f32>, width: u32, height: u32) -> Vec<ColorInt> {
+    let m_size = mask.len() as u32;
+    let m_side = (m_size as f32).sqrt().round() as u32;
+    let half = (m_side / 2) as u32;
+    let mut new_image: Vec<Pixel> = Vec::new();
 
     for x in half..(width - half) {
         for y in half..(height - half) {
             let mut new_pixel = [0f32; 3];
-            for i in 0..f_size {
-                let x_: u32 = x + (i % f_side) - half;
-                let y_: u32 = y + (i / f_side) - half;
+            for i in 0..m_size {
+                let x_: u32 = x + (i % m_side) - half;
+                let y_: u32 = y + (i / m_side) - half;
                 let aux_pixel = image[(y_ * width + x_) as usize];
                 aux_pixel.iter().enumerate().for_each(|(ch, color)| {
-                    new_pixel[ch] += *color as f32 * filter[i as usize];
+                    new_pixel[ch] += *color as f32 * mask[i as usize];
                 });
             }
-            let color = get_color_integer_from_rgb(
-                new_pixel[0] as u8,
-                new_pixel[1] as u8,
-                new_pixel[2] as u8,
-            );
-            new_image.push(color);
+            let pixel = [
+                (new_pixel[0].round() as u8),
+                (new_pixel[1].round() as u8),
+                (new_pixel[2].round() as u8),
+            ];
+            new_image.push(pixel);
         }
     }
-    new_image
+    let normalized = normalize(new_image);
+    normalized
+}
+
+pub fn sobel(image: Vec<Pixel>, width: u32, height: u32) -> Vec<ColorInt> {
+    #[rustfmt::skip]
+    let kernel_x = vec![-0.25, 0.0, 0.25,
+                   -0.50, 0.0, 0.50,
+                   -0.25, 0.0, 0.25];
+    #[rustfmt::skip]
+    let kernel_y = vec![-0.25, -0.50, -0.25,
+                    0.00,  0.00,  0.00,
+                    0.25,  0.50,  0.25];
+    let mut handlers = vec![];
+
+    let clone = image.clone();
+    handlers.push(thread::spawn(move || {
+        convolute(clone, kernel_x.clone(), width, height)
+    }));
+
+    let clone = image.clone();
+    handlers.push(thread::spawn(move || {
+        convolute(clone, kernel_y.clone(), width, height)
+    }));
+
+    let mut images = vec![];
+    for handler in handlers {
+        images.push(handler.join().unwrap());
+    }
+    let mut magnitudes: Vec<f32> = Vec::new();
+    images[0].iter().zip(images[1].iter()).for_each(|(x, y)| {
+        let gray1 = get_gray_from_color_integer(*x) as f32;
+        let gray2 = get_gray_from_color_integer(*y) as f32;
+        let mag = (gray1.powi(2) + gray2.powi(2)).sqrt() as f32;
+        magnitudes.push(mag);
+    });
+    let normalized = transformations::normalize_float(&magnitudes);
+    normalized
 }
 
 pub fn median(image: Vec<Pixel>, distance: u32, width: u32, height: u32) -> Vec<ColorInt> {
-    let f_size = (distance * 2 + 1).pow(2) as u32;
-    let f_side = 2 * distance + 1;
-    let half = (f_side / 2) as u32;
+    let m_size = (distance * 2 + 1).pow(2) as u32;
+    let m_side = 2 * distance + 1;
+    let half = (m_side / 2) as u32;
     let mut new_image: Vec<ColorInt> = Vec::new();
 
-    for y in half..(height - half) {
-        for x in half..(width - half) {
-            let mut pixels: Vec<Pixel> = vec![[0u8; 3]; f_size as usize];
-            for i in 0..f_size {
-                let x_: u32 = x + (i % f_side) - half;
-                let y_: u32 = y + (i / f_side) - half;
+    for x in half..(width - half) {
+        for y in half..(height - half) {
+            let mut pixels: Vec<Pixel> = vec![[0u8; 3]; m_size as usize];
+            for i in 0..m_size {
+                let x_: u32 = x + (i % m_side) - half;
+                let y_: u32 = y + (i / m_side) - half;
                 let aux_pixel = image[(y_ * width + x_) as usize];
                 pixels[i as usize] = aux_pixel;
             }
@@ -160,9 +203,9 @@ pub fn median(image: Vec<Pixel>, distance: u32, width: u32, height: u32) -> Vec<
             });
 
             let new_pixel = get_color_integer_from_rgb(
-                pixels[f_size as usize / 2][0],
-                pixels[f_size as usize / 2][1],
-                pixels[f_size as usize / 2][2],
+                pixels[m_size as usize / 2][0],
+                pixels[m_size as usize / 2][1],
+                pixels[m_size as usize / 2][2],
             );
             new_image.push(new_pixel);
         }
@@ -301,17 +344,17 @@ pub fn noise_reduction_max(
     width: u32,
     height: u32,
 ) -> Vec<ColorInt> {
-    let f_size = (distance * 2 + 1).pow(2) as u32;
-    let f_side = 2 * distance + 1;
-    let half = (f_side / 2) as u32;
+    let m_size = (distance * 2 + 1).pow(2) as u32;
+    let m_side = 2 * distance + 1;
+    let half = (m_side / 2) as u32;
     let mut new_image: Vec<ColorInt> = Vec::new();
 
-    for y in half..(height - half) {
-        for x in half..(width - half) {
-            let mut pixels: Vec<Pixel> = vec![[0u8; 3]; f_size as usize];
-            for i in 0..f_size {
-                let x_: u32 = x + (i % f_side) - half;
-                let y_: u32 = y + (i / f_side) - half;
+    for x in half..(width - half) {
+        for y in half..(height - half) {
+            let mut pixels: Vec<Pixel> = vec![[0u8; 3]; m_size as usize];
+            for i in 0..m_size {
+                let x_: u32 = x + (i % m_side) - half;
+                let y_: u32 = y + (i / m_side) - half;
                 let aux_pixel = image[(y_ * width + x_) as usize];
                 pixels[i as usize] = aux_pixel;
             }
@@ -323,9 +366,9 @@ pub fn noise_reduction_max(
             });
 
             let new_pixel = get_color_integer_from_rgb(
-                pixels[f_size as usize - 1][0],
-                pixels[f_size as usize - 1][1],
-                pixels[f_size as usize - 1][2],
+                pixels[m_size as usize - 1][0],
+                pixels[m_size as usize - 1][1],
+                pixels[m_size as usize - 1][2],
             );
             new_image.push(new_pixel);
         }
@@ -339,17 +382,17 @@ pub fn noise_reduction_min(
     width: u32,
     height: u32,
 ) -> Vec<ColorInt> {
-    let f_size = (distance * 2 + 1).pow(2) as u32;
-    let f_side = 2 * distance + 1;
-    let half = (f_side / 2) as u32;
+    let m_size = (distance * 2 + 1).pow(2) as u32;
+    let m_side = 2 * distance + 1;
+    let half = (m_side / 2) as u32;
     let mut new_image: Vec<ColorInt> = Vec::new();
 
-    for y in half..(height - half) {
-        for x in half..(width - half) {
-            let mut pixels: Vec<Pixel> = vec![[0u8; 3]; f_size as usize];
-            for i in 0..f_size {
-                let x_: u32 = x + (i % f_side) - half;
-                let y_: u32 = y + (i / f_side) - half;
+    for x in half..(width - half) {
+        for y in half..(height - half) {
+            let mut pixels: Vec<Pixel> = vec![[0u8; 3]; m_size as usize];
+            for i in 0..m_size {
+                let x_: u32 = x + (i % m_side) - half;
+                let y_: u32 = y + (i / m_side) - half;
                 let aux_pixel = image[(y_ * width + x_) as usize];
                 pixels[i as usize] = aux_pixel;
             }
@@ -373,17 +416,17 @@ pub fn noise_reduction_midpoint(
     width: u32,
     height: u32,
 ) -> Vec<ColorInt> {
-    let f_size = (distance * 2 + 1).pow(2) as u32;
-    let f_side = 2 * distance + 1;
-    let half = (f_side / 2) as u32;
+    let m_size = (distance * 2 + 1).pow(2) as u32;
+    let m_side = 2 * distance + 1;
+    let half = (m_side / 2) as u32;
     let mut new_image: Vec<ColorInt> = Vec::new();
 
-    for y in half..(height - half) {
-        for x in half..(width - half) {
-            let mut pixels: Vec<Pixel> = vec![[0u8; 3]; f_size as usize];
-            for i in 0..f_size {
-                let x_: u32 = x + (i % f_side) - half;
-                let y_: u32 = y + (i / f_side) - half;
+    for x in half..(width - half) {
+        for y in half..(height - half) {
+            let mut pixels: Vec<Pixel> = vec![[0u8; 3]; m_size as usize];
+            for i in 0..m_size {
+                let x_: u32 = x + (i % m_side) - half;
+                let y_: u32 = y + (i / m_side) - half;
                 let aux_pixel = image[(y_ * width + x_) as usize];
                 pixels[i as usize] = aux_pixel;
             }
@@ -395,9 +438,9 @@ pub fn noise_reduction_midpoint(
             });
 
             let new_pixel = get_color_integer_from_rgb(
-                pixels[0][1] / 2 + pixels[f_size as usize - 1][0] / 2,
-                pixels[0][1] / 2 + pixels[f_size as usize - 1][1] / 2,
-                pixels[0][2] / 2 + pixels[f_size as usize - 1][2] / 2,
+                pixels[0][1] / 2 + pixels[m_size as usize - 1][0] / 2,
+                pixels[0][1] / 2 + pixels[m_size as usize - 1][1] / 2,
+                pixels[0][2] / 2 + pixels[m_size as usize - 1][2] / 2,
             );
             new_image.push(new_pixel);
         }

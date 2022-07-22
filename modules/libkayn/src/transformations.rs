@@ -37,7 +37,7 @@ pub fn get_color_integer_from_rgb(r: u8, g: u8, b: u8) -> ColorInt {
 //             coeff.push(value);
 //         }
 //     }
-//     let normalized = normalize_cosine(&coeff);
+//     let normalized = normalize_float(&coeff);
 //     (normalized, coeff)
 // }
 
@@ -73,7 +73,7 @@ pub fn get_color_integer_from_rgb(r: u8, g: u8, b: u8) -> ColorInt {
 //     new_image
 // }
 
-pub fn normalize_cosine(transformed: &Vec<f32>) -> Vec<ColorInt> {
+pub fn normalize_float(transformed: &Vec<f32>) -> Vec<ColorInt> {
     let mut new_image: Vec<ColorInt> = vec![];
     let (min, max) =
         transformed
@@ -143,7 +143,7 @@ pub fn dct_multithread(image: Vec<Pixel>, width: u32, height: u32) -> (Vec<Color
     for h in handles {
         coeff.extend(h.join().unwrap());
     }
-    let normalized = normalize_cosine(&coeff);
+    let normalized = normalize_float(&coeff);
     (normalized, coeff)
 }
 
@@ -214,7 +214,7 @@ pub fn freq_lowpass(
             }
         }
     }
-    let normalized = normalize_cosine(&new_coeff);
+    let normalized = normalize_float(&new_coeff);
     (normalized, new_coeff)
 }
 
@@ -234,12 +234,12 @@ pub fn freq_highpass(
             }
         }
     }
-    let normalized = normalize_cosine(&new_coeff);
+    let normalized = normalize_float(&new_coeff);
     (normalized, new_coeff)
 }
 
 pub fn freq_normalize(coeff: Vec<f32>) -> Vec<ColorInt> {
-    let normalized = normalize_cosine(&coeff);
+    let normalized = normalize_float(&coeff);
     normalized
 }
 

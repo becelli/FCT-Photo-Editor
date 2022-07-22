@@ -9,24 +9,27 @@ type ColorInt = u32;
 
 #[pyfunction]
 fn grayscale(image: Vec<Pixel>) -> PyResult<Vec<ColorInt>> {
-    Ok(operations::grayscale(image as Vec<Pixel>))
+    Ok(operations::grayscale(image))
 }
 
 #[pyfunction]
 fn negative(image: Vec<Pixel>) -> PyResult<Vec<ColorInt>> {
-    Ok(operations::negative(image as Vec<Pixel>))
+    Ok(operations::negative(image))
 }
 
 #[pyfunction]
-fn filter_nxn(
+fn convolute(
     image: Vec<Pixel>,
-    filter: Vec<f32>,
+    mask: Vec<f32>,
     width: u32,
     height: u32,
 ) -> PyResult<Vec<ColorInt>> {
-    Ok(operations::filter_nxn(image, filter, width, height))
+    Ok(operations::convolute(image, mask, width, height))
 }
-
+#[pyfunction]
+fn sobel(image: Vec<Pixel>, width: u32, height: u32) -> PyResult<Vec<ColorInt>> {
+    Ok(operations::sobel(image, width, height))
+}
 #[pyfunction]
 fn median(image: Vec<Pixel>, distance: u32, width: u32, height: u32) -> PyResult<Vec<ColorInt>> {
     Ok(operations::median(image, distance, width, height))
@@ -159,7 +162,8 @@ fn split_color_channel(image: Vec<Pixel>, channel: usize) -> PyResult<Vec<ColorI
 fn libkayn(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(grayscale, m)?)?;
     m.add_function(wrap_pyfunction!(negative, m)?)?;
-    m.add_function(wrap_pyfunction!(filter_nxn, m)?)?;
+    m.add_function(wrap_pyfunction!(convolute, m)?)?;
+    m.add_function(wrap_pyfunction!(sobel, m)?)?;
     m.add_function(wrap_pyfunction!(median, m)?)?;
     m.add_function(wrap_pyfunction!(dynamic_compression, m)?)?;
     m.add_function(wrap_pyfunction!(normalize, m)?)?;
