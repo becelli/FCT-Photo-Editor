@@ -194,8 +194,8 @@ class MainWindow(QMainWindow):
             "Noise Reduction Max": lambda: f.noise_reduction_max(),
             "Noise Reduction Min": lambda: f.noise_reduction_min(),
             "Noise Reduction Midpoint": lambda: f.noise_reduction_midpoint(),
-            "OTSU Binarize": lambda: f.otsu_binarization(),
-            "OTSU Limiarize": lambda: f.otsu_limiarization(),
+            "OTSU Binarize": lambda: f.otsu_binarize(),
+            "OTSU Limiarize": lambda: f.otsu_limiarize(),
 
             "Binarize": lambda: self.try_to_binarize_image(f),
             "Mean": lambda: self.try_to_apply_mean_filter(f),
@@ -250,7 +250,7 @@ class MainWindow(QMainWindow):
     def try_to_apply_limiarization_filter(self, filtertool: Filters) -> QImage:
         limiar = self.display_limiarization_filter_parameter()
         if limiar >= 0:
-            return filtertool.limiarization(limiar)
+            return filtertool.limiarize(limiar)
         return None
 
     def try_to_binarize_image(self, filtertool: Filters) -> QImage:
@@ -264,15 +264,16 @@ class MainWindow(QMainWindow):
 
     def try_to_apply_resize_filter(self, f: Filters) -> QImage:
         w, h = self.display_resize_filter_parameters()
-        if w >= 1 and h >= 1:
+        if w > 0 and h > 0:
             return f.resize_nearest_neighbor(w, h)
         return None
 
     def display_resize_filter_parameters(self) -> tuple[int, int]:
-        w = qto.display_int_input_dialog("Width", 1, 10000, 640)
+        w = qto.display_int_input_dialog("Width", 1, 10000, 512)
         if w > 0:
-            h = qto.display_int_input_dialog("Height", 1, 10000, 480)
-        return w, h
+            h = qto.display_int_input_dialog("Height", 1, 10000, 512)
+            return w, h
+        return -1, -1
 
     def display_sobel_magnitudes_filter(self, f: Filters) -> None:
         images = f.sobel_magnitudes()

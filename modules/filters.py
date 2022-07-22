@@ -9,6 +9,18 @@ import libkayn as kayn
 class Filters:
     img: QImage
 
+    def _default_filter(self, filter_func: callable, **kwargs) -> QImage:
+        w, h = self.img.width(), self.img.height()
+        image = self._get_img_pixels(w, h)
+
+        filtered = filter_func(image, **kwargs)
+
+        new_image = QImage(w, h, QImage.Format.Format_RGB32)
+        for y in range(h):
+            for x in range(w):
+                new_image.setPixel(x, y, filtered[x + y * w])
+        return new_image
+
     def _create_new_image(self, width=320, height=240):
         image = QImage(width, height, QImage.Format.Format_RGB32)
         return image
@@ -19,19 +31,15 @@ class Filters:
         return w, h, image
 
     def _get_img_pixels(self, w, h):
-        pixels = np.array(self.img.bits().asarray(w * h * 4)).reshape(h * w, 4)[:, :3]
+        bits = np.array(self.img.bits().asarray(w * h * 4))
+        # Reverse the order of the pixels to match the order of the image
+        pixels = bits.reshape(h * w, 4)[:, :3][:, ::-1]
         return pixels
 
     def grayscale(self) -> QImage:
         if self.img.isGrayscale():
             return self.img
-        w, h, new_image = self._get_default_elements_to_filters()
-        image = self._get_img_pixels(w, h)
-        grayscaled = kayn.grayscale(image)
-        for y in range(h):
-            for x in range(w):
-                new_image.setPixel(x, y, grayscaled[x + y * w])
-        return new_image
+        return self._default_filter(kayn.grayscale)
 
     def get_channel(self, color: str) -> QImage:
         w, h, image = self._get_default_elements_to_filters()
@@ -43,13 +51,7 @@ class Filters:
         return image
 
     def negative(self) -> QImage:
-        w, h, new_image = self._get_default_elements_to_filters()
-        image = self._get_img_pixels(w, h)
-        negative = kayn.negative(image)
-        for y in range(h):
-            for x in range(w):
-                new_image.setPixel(x, y, negative[x + y * w])
-        return new_image
+        return self._default_filter(kayn.negative)
 
     def binarize(self, limiar: int) -> QImage:
         w, h = self.img.width(), self.img.height()
@@ -110,27 +112,11 @@ class Filters:
 
         return new_image
 
-    def dynamic_compression(self, c: float = 1, gama: float = 1) -> QImage:
-        w, h, new_image = self._get_default_elements_to_filters()
-        image = self._get_img_pixels(w, h)
-        compressed = kayn.dynamic_compression(image, c, gama)
-
-        for y in range(h):
-            for x in range(w):
-                new_image.setPixel(x, y, compressed[x + y * w])
-
-        # normalized = kayn.normalize(new_image)
-        return new_image
+    def dynamic_compression(self, c: float = 1, gamma: float = 1) -> QImage:
+        return self._default_filter(kayn.dynamic_compression, constant=c, gamma=gamma)
 
     def normalize(self) -> QImage:
-        w, h = self.img.width(), self.img.height()
-        image = self._get_img_pixels(w, h)
-        normalized = kayn.normalize(image)
-        new_image = QImage(w, h, QImage.Format.Format_RGB32)
-        for y in range(h):
-            for x in range(w):
-                new_image.setPixel(x, y, normalized[x + y * w])
-        return new_image
+        return self._default_filter(kayn.normalize)
 
     def sobel(self) -> QImage:
         kernelX = np.array([-1, 0, 1, -2, 0, 2, -1, 0, 1]) / np.float64(4)
@@ -212,15 +198,8 @@ class Filters:
                 new_image.setPixel(x, y, resized[x + y * new_width])
         return new_image
 
-    def limiarization(self, limiar: int) -> QImage:
-        w, h = self.img.width(), self.img.height()
-        image = self._get_img_pixels(w, h)
-        limiarized = kayn.limiarize(image, limiar)
-        new_image = QImage(w, h, QImage.Format.Format_RGB32)
-        for y in range(h):
-            for x in range(w):
-                new_image.setPixel(x, y, limiarized[x + y * w])
-        return new_image
+    def limiarize(self, threshold: int) -> QImage:
+        return self._default_filter(kayn.limiarize, threshold=threshold)
 
     def filter_NxN(self, mask: np.ndarray) -> QImage:
         w, h = self.img.width(), self.img.height()
@@ -239,16 +218,7 @@ class Filters:
         return new_image
 
     def gray_to_color_scale(self) -> QImage:
-        w, h = self.img.width(), self.img.height()
-        image = self._get_img_pixels(w, h)
-        if not self.img.isGrayscale():
-            self.img = self.grayscale()
-        new_image = QImage(w, h, QImage.Format.Format_RGB32)
-        colorized = kayn.gray_to_color_scale(image)
-        for y in range(h):
-            for x in range(w):
-                new_image.setPixel(x, y, colorized[x + y * w])
-        return new_image
+        return self._default_filter(kayn.gray_to_color_scale)
 
     def noise_reduction_max(self, n: int = 3) -> QImage:
         n = n if n % 2 == 1 else n + 1
@@ -353,43 +323,18 @@ class Filters:
         return new_image
 
 
-    def otsu_binarization(self) -> QImage:
+    def otsu_binarize(self) -> QImage:
         w, h = self.img.width(), self.img.height()
         image = self._get_img_pixels(w, h)
+        threshold = kayn.otsu_threshold(image, w, h)
+        return self._default_filter(kayn.binarize, threshold=threshold)
 
-        if not self.img.isGrayscale():
-            self.img = self.grayscale()
-
-        limiar = kayn.otsu_threshold(image, w, h)
-        binarized = kayn.binarize(image, limiar)
-        new_image = QImage(w, h, QImage.Format.Format_RGB32)
-        for y in range(h):
-            for x in range(w):
-                new_image.setPixel(x, y, binarized[x + y * w])
-        return new_image
-
-    def otsu_limiarization(self) -> QImage:
+    def otsu_limiarize(self) -> QImage:
         w, h = self.img.width(), self.img.height()
         image = self._get_img_pixels(w, h)
+        threshold = kayn.otsu_threshold(image, w, h)
+        return self._default_filter(kayn.limiarize, threshold=threshold)
 
-        if not self.img.isGrayscale():
-            self.img = self.grayscale()
-
-        limiar = kayn.otsu_threshold(image, w, h)
-        limiarized = kayn.limiarize(image, limiar)
-        new_image = QImage(w, h, QImage.Format.Format_RGB32)
-        for y in range(h):
-            for x in range(w):
-                new_image.setPixel(x, y, limiarized[x + y * w])
-        return new_image
-
-    def hsl_equalization(self) -> QImage:
+    def hsl_equalize(self) -> QImage:
         w, h = self.img.width(), self.img.height()
-        image = self._get_img_pixels(w, h)
-
-        equalized = kayn.equalize_hsl(image)
-        new_image = QImage(w, h, QImage.Format.Format_RGB32)
-        for y in range(h):
-            for x in range(w):
-                new_image.setPixel(x, y, equalized[x + y * w])
-        return new_image
+        return self._default_filter(kayn.equalize_hsl, w, h)
