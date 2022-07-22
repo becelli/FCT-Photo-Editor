@@ -1,6 +1,4 @@
 use super::transformations;
-use core::cmp::max;
-use core::cmp::min;
 use std::thread;
 type Pixel = [u8; 3];
 type ColorInt = u32;
@@ -28,8 +26,8 @@ pub fn _convert_rgb_to_hsl(pixel: Pixel) -> Pixel {
         pixel[1] as f32 / 255.0,
         pixel[2] as f32 / 255.0,
     );
-    let mx = max(pixel[0], max(pixel[1], pixel[2])) as f32;
-    let mn = min(pixel[0], min(pixel[1], pixel[2])) as f32;
+    let mx = f32::max(r, f32::max(g, b)) as f32;
+    let mn = f32::min(r, f32::min(g, b)) as f32;
     let mut h: f32;
     let mut s: f32 = 0.0;
     let l: f32 = (mx + mn) / 2.0;
@@ -38,7 +36,7 @@ pub fn _convert_rgb_to_hsl(pixel: Pixel) -> Pixel {
     if d == 0.0 {
         h = 0.0;
     } else if mx == r {
-        h = ((g - b) / d) / 6.0;
+        h = ((g - b) / d) % 6.0;
     } else if mx == g {
         h = (b - r) / d + 2.0;
     } else {
@@ -72,21 +70,21 @@ pub fn _convert_hsl_to_rgb(pixel: Pixel) -> ColorInt {
     );
 
     let c: f32 = (1.0 - (2.0 * l - 1.0).abs()) * s as f32;
-    let x: f32 = c * (1 - ((h as i32 / 40) % 2 - 1 as i32).abs()) as f32;
+    let x: f32 = c * (1.0 - ((h / 40.0) % 2.0 - 1.0).abs()) as f32;
     let m: f32 = l - c / 2.0;
 
     if h < 40.0 {
-        (r, g, b) = (c, x, 0.0)
+        (r, g, b) = (c, x, 0.0);
     } else if h < 80.0 {
-        (r, g, b) = (x, c, 0.0)
+        (r, g, b) = (x, c, 0.0);
     } else if h < 120.0 {
-        (r, g, b) = (0.0, c, x)
+        (r, g, b) = (0.0, c, x);
     } else if h < 160.0 {
-        (r, g, b) = (0.0, x, c)
+        (r, g, b) = (0.0, x, c);
     } else if h < 200.0 {
-        (r, g, b) = (x, 0.0, c)
+        (r, g, b) = (x, 0.0, c);
     } else {
-        (r, g, b) = (c, 0.0, x)
+        (r, g, b) = (c, 0.0, x);
     }
     (r, g, b) = ((r + m) * 255.0, (g + m) * 255.0, (b + m) * 255.0);
     let rgb = get_color_integer_from_rgb(r as u8, g as u8, b as u8);
@@ -438,7 +436,7 @@ pub fn noise_reduction_midpoint(
             });
 
             let new_pixel = get_color_integer_from_rgb(
-                pixels[0][1] / 2 + pixels[m_size as usize - 1][0] / 2,
+                pixels[0][0] / 2 + pixels[m_size as usize - 1][0] / 2,
                 pixels[0][1] / 2 + pixels[m_size as usize - 1][1] / 2,
                 pixels[0][2] / 2 + pixels[m_size as usize - 1][2] / 2,
             );
@@ -485,24 +483,23 @@ pub fn otsu_thresholding(image: Vec<Pixel>, width: u32, height: u32) -> u8 {
 }
 
 pub fn equalize_hsl(image: Vec<Pixel>) -> Vec<ColorInt> {
-    let mut histogram: Vec<u32> = vec![0; 256];
+    let mut histogram: Vec<u32> = vec![0; 240];
     let mut hsl_image: Vec<Pixel> = Vec::new();
     image.iter().for_each(|pixel| {
-        let organized_pixel: Pixel = [pixel[2], pixel[1], pixel[0]];
-        let hsl_pixel: Pixel = _convert_rgb_to_hsl(organized_pixel);
+        let hsl_pixel: Pixel = _convert_rgb_to_hsl(*pixel);
         let l = hsl_pixel[2] as u8;
         histogram[l as usize] += 1;
         hsl_image.push(hsl_pixel);
     });
     let mut sum: u32 = 0;
-    let mut new_histogram: Vec<u32> = vec![0; 256];
+    let mut new_histogram: Vec<u32> = vec![0; 240];
     histogram.iter().enumerate().for_each(|(i, count)| {
         sum += *count;
         new_histogram[i] = sum;
     });
     let mut equalized_image: Vec<ColorInt> = Vec::new();
     hsl_image.iter().for_each(|pixel| {
-        let new_l = (new_histogram[pixel[2] as usize] * 239) / sum;
+        let new_l = (new_histogram[pixel[2] as usize] * 240) / sum;
         let new_pixel: Pixel = [pixel[0] as u8, pixel[1] as u8, new_l as u8];
         let color: ColorInt = _convert_hsl_to_rgb(new_pixel);
         equalized_image.push(color);
