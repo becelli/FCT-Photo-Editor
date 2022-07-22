@@ -1,12 +1,13 @@
+from dataclasses import dataclass
 from PyQt5.QtGui import QImage
 import numpy as np
 import modules.colors_adapter as c_adpt
 import libkayn as kayn
 
 
+@dataclass
 class Filters:
-    def __init__(self, img: QImage):
-        self.img: QImage = img
+    img: QImage
 
     def _create_new_image(self, width=320, height=240):
         image = QImage(width, height, QImage.Format.Format_RGB32)
