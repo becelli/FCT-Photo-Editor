@@ -181,8 +181,7 @@ class Filters:
         return c_adpt.get_color_integer_from_gray(c)
 
     def laplace(self) -> QImage:
-        mask = np.array([-1, -1, -1, -1, 8, -1, -1, -1, -1]) / np.float64(8)
-        # mask = np.array([0, -1, 0, -1, 4, -1, 0, -1, 0]) / np.float64(4)
+        mask = np.array([0, -1, 0, -1, 4, -1, 0, -1, 0]) / np.float64(4)
 
         self.img = self.filter_NxN(mask)
         normalized_img = self.normalize()

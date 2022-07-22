@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import (
     QMainWindow,
     QPushButton,
     QInputDialog,
+    QAction,
 )
 from PyQt5.QtGui import QPixmap, QImage, QColor, QFont
 from PyQt5.QtCore import Qt
@@ -174,3 +175,16 @@ def create_label_and_canvas(name: str = "Canvas", xscale: int = 0, yscale: int =
         canvas.setScaledContents(True)
         canvas.setFixedSize(xscale, yscale)
     return label, canvas
+
+    # Feature: Menubar functions
+
+
+def add_submenu(parent, name=None, func=None, shortcut=None, tooltip=None):
+    menu = QAction(name, parent)
+    if func:
+        menu.triggered.connect(lambda: func())
+    if shortcut:
+        menu.setShortcut(shortcut)
+    if tooltip:
+        menu.setToolTip(tooltip)
+    return menu
