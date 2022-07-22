@@ -196,6 +196,7 @@ class MainWindow(QMainWindow):
             "Noise Reduction Midpoint": lambda: f.noise_reduction_midpoint(),
             "OTSU Binarize": lambda: f.otsu_binarize(),
             "OTSU Limiarize": lambda: f.otsu_limiarize(),
+            "HSL Equalize": lambda: f.hsl_equalize(),
 
             "Binarize": lambda: self.try_to_binarize_image(f),
             "Mean": lambda: self.try_to_apply_mean_filter(f),
@@ -371,7 +372,8 @@ class MainWindow(QMainWindow):
             MenuAction("Noise Reduction Max", lambda: f("Noise Reduction Max"), "F10"),
             MenuAction("Noise Reduction Min", lambda: f("Noise Reduction Min"), "F11"),
             MenuAction("Noise Reduction Midpoint", lambda: f("Noise Reduction Midpoint"), "F12"),
-            MenuAction("Salt and Pepper", lambda: f("Salt and Pepper"))
+            MenuAction("HSL Equalize", lambda: f("HSL Equalize"), "Ctrl+F1"),
+            MenuAction("Salt and Pepper", lambda: f("Salt and Pepper"), "Ctrl+F2"),
         )
         self.add_actions_to_generic_menu(filters_menu, filters)
 

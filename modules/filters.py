@@ -227,4 +227,4 @@ class Filters:
 
     def hsl_equalize(self) -> QImage:
         w, h = self.img.width(), self.img.height()
-        return self._default_filter(kayn.equalize_hsl, w, h)
+        return self._default_filter(kayn.equalize_hsl)
