@@ -1,3 +1,5 @@
+use core::cmp::min;
+use core::cmp::max;
 type Pixel = [u8; 3];
 type ColorInt = u32;
 
@@ -27,7 +29,7 @@ pub fn _convert_rgb_to_hsl(pixel: Pixel) -> Pixel{
         h = 0.0;
     }
     else if mx == r{
-        h = ((g - b) / d) % 6.0;
+        h = ((g - b) / d) / 6.0;
     }else if mx == g{
         h = (b - r) / d + 2.0;
     }else{
@@ -75,7 +77,7 @@ pub fn _convert_hsl_to_rgb(pixel: Pixel) -> ColorInt{
     }
     (r, g, b) = ((r + m) * 255.0, (g + m) * 255.0, (b + m) * 255.0);
     let rgb = get_color_integer_from_rgb(r as u8, g as u8, b as u8);
-rgb
+    rgb
 }
 
 
@@ -434,4 +436,31 @@ pub fn otsu_thresholding(image: Vec<Pixel>, width: u32, height: u32) -> u8 {
         }
     }
     limiar_candidate
+}
+
+pub fn equalize_hsl(image: Vec<Pixel>) -> Vec<ColorInt> {
+    let mut histogram: Vec<u32> = vec![0; 256];
+    let mut hsl_image: Vec<Pixel> = Vec::new();
+    image.iter().for_each(|pixel| {
+        let organized_pixel: Pixel = [pixel[2], pixel[1], pixel[0]];
+        let hsl_pixel: Pixel = _convert_rgb_to_hsl(organized_pixel);
+        let l = hsl_pixel[2] as u8;
+        histogram[l as usize] += 1;
+        hsl_image.push(hsl_pixel);
+    });
+    let mut sum: u32 = 0;
+    let mut new_histogram: Vec<u32> = vec![0; 256];
+    histogram.iter().enumerate().for_each(|(i, count)| {
+        sum += *count;
+        new_histogram[i] = sum;
+    });
+    let mut equalized_image: Vec<ColorInt> = Vec::new();
+    hsl_image.iter().for_each(|pixel| {
+        let new_l = (new_histogram[pixel[2] as usize] * 239) / sum;
+        let new_pixel: Pixel = [pixel[0] as u8, pixel[1] as u8, new_l as u8];
+        let color: ColorInt = _convert_hsl_to_rgb(new_pixel);
+        equalized_image.push(color);
+    });
+    //println!(equalized_image);
+    equalized_image
 }

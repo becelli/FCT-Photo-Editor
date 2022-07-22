@@ -146,6 +146,13 @@ fn freq_normalize(image: Vec<f32>) -> PyResult<Vec<ColorInt>> {
     Ok(transformations::freq_normalize(image))
 }
 
+#[pyfunction]
+fn equalize_hsl(image: Vec<Pixel>) -> PyResult<Vec<ColorInt>>{
+    Ok(operations::equalize_hsl(
+        image
+    ))
+}
+
 #[pymodule]
 fn libkayn(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(grayscale, m)?)?;
@@ -168,6 +175,6 @@ fn libkayn(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(freq_lowpass, m)?)?;
     m.add_function(wrap_pyfunction!(freq_highpass, m)?)?;
     m.add_function(wrap_pyfunction!(freq_normalize, m)?)?;
-
+    m.add_function(wrap_pyfunction!(equalize_hsl, m)?)?;
     Ok(())
 }
