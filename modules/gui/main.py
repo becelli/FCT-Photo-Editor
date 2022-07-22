@@ -121,7 +121,7 @@ class MainWindow(QMainWindow):
         self, color: str, canvas: QLabel
     ) -> None:
         f = Filters(img=qto.get_image_from_canvas(self.input_canvas))
-        image: QImage = f.get_channel(color)
+        image: QImage = f.split_color_channel(color)
         qto.put_image_on_canvas(canvas, image)
 
     def get_styled_label_with_color(self, color: str, label: QLabel) -> None:

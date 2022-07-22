@@ -41,14 +41,9 @@ class Filters:
             return self.img
         return self._default_filter(kayn.grayscale)
 
-    def get_channel(self, color: str) -> QImage:
-        w, h, image = self._get_default_elements_to_filters()
-        for x in range(w):
-            for y in range(h):
-                pixel = self.img.pixel(x, y)
-                new_pixel = c_adpt.get_color_integer_from_color_name(color, pixel)
-                image.setPixel(x, y, new_pixel)
-        return image
+    def split_color_channel(self, channel: str) -> QImage:
+        ch = 0 if channel == "red" else 1 if channel == "green" else 2
+        return self._default_filter(kayn.split_color_channel, channel=ch)
 
     def negative(self) -> QImage:
         return self._default_filter(kayn.negative)

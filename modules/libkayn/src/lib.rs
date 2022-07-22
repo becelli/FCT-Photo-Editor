@@ -147,10 +147,12 @@ fn freq_normalize(image: Vec<f32>) -> PyResult<Vec<ColorInt>> {
 }
 
 #[pyfunction]
-fn equalize_hsl(image: Vec<Pixel>) -> PyResult<Vec<ColorInt>>{
-    Ok(operations::equalize_hsl(
-        image
-    ))
+fn equalize_hsl(image: Vec<Pixel>) -> PyResult<Vec<ColorInt>> {
+    Ok(operations::equalize_hsl(image))
+}
+#[pyfunction]
+fn split_color_channel(image: Vec<Pixel>, channel: usize) -> PyResult<Vec<ColorInt>> {
+    Ok(operations::split_color_channel(image, channel))
 }
 
 #[pymodule]
@@ -176,5 +178,6 @@ fn libkayn(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(freq_highpass, m)?)?;
     m.add_function(wrap_pyfunction!(freq_normalize, m)?)?;
     m.add_function(wrap_pyfunction!(equalize_hsl, m)?)?;
+    m.add_function(wrap_pyfunction!(split_color_channel, m)?)?;
     Ok(())
 }

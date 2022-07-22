@@ -1,5 +1,5 @@
-use core::cmp::min;
 use core::cmp::max;
+use core::cmp::min;
 type Pixel = [u8; 3];
 type ColorInt = u32;
 
@@ -464,6 +464,23 @@ pub fn equalize_hsl(image: Vec<Pixel>) -> Vec<ColorInt> {
         let color: ColorInt = _convert_hsl_to_rgb(new_pixel);
         equalized_image.push(color);
     });
-    //println!(equalized_image);
     equalized_image
+}
+
+pub fn split_color_channel(image: Vec<Pixel>, channel: usize) -> Vec<ColorInt> {
+    let mut new_image: Vec<ColorInt> = Vec::new();
+    image.iter().for_each(|pixel| {
+        let new_pixel = match channel {
+            0 => [pixel[0], 0, 0],
+            1 => [0, pixel[1], 0],
+            2 => [0, 0, pixel[2]],
+            _ => [0, 0, 0],
+        };
+        new_image.push(get_color_integer_from_rgb(
+            new_pixel[0],
+            new_pixel[1],
+            new_pixel[2],
+        ));
+    });
+    new_image
 }
