@@ -196,7 +196,7 @@ class MainWindow(QMainWindow):
             "limiarization": lambda: self._try_to_apply_limiarization_filter(f),
             "resize": lambda: self._try_to_apply_resize_filter(f),
             "normalize": lambda: f.normalize(),
-            "gaussian_laplacian": lambda: f.gaussian_laplacian(),
+            "laplacian_of_gaussian": lambda: f.gaussian_laplacian(),
             "nevatia_babu": lambda: f.nevatia_babu(),
             "color_scale": lambda: f.gray_to_color_scale(),
             "noise_reduction_max": lambda: f.noise_reduction_max(),
