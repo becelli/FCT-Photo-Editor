@@ -63,9 +63,7 @@ pub fn _convert_hsl_to_rgb(pixel: Pixel) -> ColorInt {
     where h is 0-239, s is 0-240, l is 0-240
     and the rgb values are 0-255
     */
-    let mut r: f32;
-    let mut g: f32;
-    let mut b: f32;
+    let (mut r, mut g, mut b): (f32, f32, f32);
     let (h, s, l) = (
         pixel[0] as f32,
         pixel[1] as f32 / 240.0,
@@ -76,19 +74,15 @@ pub fn _convert_hsl_to_rgb(pixel: Pixel) -> ColorInt {
     let x: f32 = c * (1.0 - ((h / 40.0) % 2.0 - 1.0).abs()) as f32;
     let m: f32 = l - c / 2.0;
 
-    if h < 40.0 {
-        (r, g, b) = (c, x, 0.0);
-    } else if h < 80.0 {
-        (r, g, b) = (x, c, 0.0);
-    } else if h < 120.0 {
-        (r, g, b) = (0.0, c, x);
-    } else if h < 160.0 {
-        (r, g, b) = (0.0, x, c);
-    } else if h < 200.0 {
-        (r, g, b) = (x, 0.0, c);
-    } else {
-        (r, g, b) = (c, 0.0, x);
-    }
+    (r, g, b) = match h {
+        h if h < 40.0 => (c, x, 0.0),
+        h if h < 80.0 => (x, c, 0.0),
+        h if h < 120.0 => (0.0, c, x),
+        h if h < 160.0 => (0.0, x, c),
+        h if h < 200.0 => (x, 0.0, c),
+        _ => (c, 0.0, x),
+    };
+
     (r, g, b) = ((r + m) * 255.0, (g + m) * 255.0, (b + m) * 255.0);
     let rgb = get_color_integer_from_rgb(r as u8, g as u8, b as u8);
     rgb
@@ -485,7 +479,7 @@ pub fn otsu_thresholding(image: Vec<Pixel>, width: u32, height: u32) -> u8 {
 }
 
 pub fn equalize_hsl(image: Vec<Pixel>) -> Vec<ColorInt> {
-    let mut histogram: Vec<u32> = vec![0; 240];
+    let mut histogram: Vec<u32> = vec![0; 241];
     let mut hsl_image: Vec<Pixel> = Vec::new();
     image.iter().for_each(|pixel| {
         let hsl_pixel: Pixel = _convert_rgb_to_hsl(*pixel);
@@ -494,7 +488,7 @@ pub fn equalize_hsl(image: Vec<Pixel>) -> Vec<ColorInt> {
         hsl_image.push(hsl_pixel);
     });
     let mut sum: u32 = 0;
-    let mut new_histogram: Vec<u32> = vec![0; 240];
+    let mut new_histogram: Vec<u32> = vec![0; 241];
     histogram.iter().enumerate().for_each(|(i, count)| {
         sum += *count;
         new_histogram[i] = sum;
