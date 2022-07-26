@@ -2,7 +2,6 @@ use super::transformations;
 use std::thread;
 type Pixel = [u8; 3];
 type ColorInt = u32;
-
 pub fn get_color_integer_from_rgb(r: u8, g: u8, b: u8) -> ColorInt {
     (r as u32) << 16 | (g as u32) << 8 | (b as u32)
 }
@@ -13,6 +12,10 @@ pub fn get_color_integer_from_gray(gray: u8) -> ColorInt {
 
 pub fn get_gray_from_color_integer(color_integer: ColorInt) -> u8 {
     (color_integer >> 16) as u8
+}
+
+pub fn get_gray_from_rgb(r: u8, g: u8, b: u8) -> u8 {
+    ((r as u16 + g as u16 + b as u16) / 3) as u8
 }
 
 pub fn _convert_rgb_to_hsl(pixel: Pixel) -> Pixel {
@@ -510,17 +513,68 @@ pub fn equalize_hsl(image: Vec<Pixel>) -> Vec<ColorInt> {
 pub fn split_color_channel(image: Vec<Pixel>, channel: usize) -> Vec<ColorInt> {
     let mut new_image: Vec<ColorInt> = Vec::new();
     image.iter().for_each(|pixel| {
-        let new_pixel = match channel {
+        let new_color = match channel {
             0 => [pixel[0], 0, 0],
             1 => [0, pixel[1], 0],
             2 => [0, 0, pixel[2]],
             _ => [0, 0, 0],
         };
-        new_image.push(get_color_integer_from_rgb(
-            new_pixel[0],
-            new_pixel[1],
-            new_pixel[2],
-        ));
+        let new_pixel = get_color_integer_from_rgb(new_color[0], new_color[1], new_color[2]);
+        new_image.push(new_pixel);
     });
+    new_image
+}
+
+pub fn erosion(image: Vec<Pixel>, width: i32, height: i32) -> Vec<ColorInt> {
+    let mask = vec![[0, 1, 0], [1, 1, 1], [0, 1, 0]];
+    let mut new_image: Vec<ColorInt> = vec![0; image.len()];
+
+    for x in 1..width - 1 {
+        for y in 1..height - 1 {
+            let mut to_remove = false;
+            let pixel = image[(y * width + x) as usize];
+            let color = get_gray_from_rgb(pixel[0], pixel[1], pixel[2]);
+            if color > 0 {
+                to_remove = true;
+                for i in -1..=1 {
+                    for j in -1..=1 {
+                        if mask[(i + 1) as usize][(j + 1) as usize] == 1 {
+                            let aux = image[((y + j) * width + x + i) as usize];
+                            let gray = get_gray_from_rgb(aux[0], aux[1], aux[2]);
+                            if gray == 0 {
+                                to_remove = false;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            if to_remove {
+                new_image[(y * width + x) as usize] = 0xFFFFFFFF;
+            }
+        }
+    }
+    new_image
+}
+
+pub fn dilation(image: Vec<Pixel>, width: i32, height: i32) -> Vec<ColorInt> {
+    let mask = vec![[0, 1, 0], [1, 1, 1], [0, 1, 0]];
+    let mut new_image: Vec<ColorInt> = vec![0; image.len()];
+
+    for x in 1..width - 1 {
+        for y in 1..height - 1 {
+            let pixel = image[(y * width + x) as usize];
+            let color = get_gray_from_rgb(pixel[0], pixel[1], pixel[2]);
+            if color > 0 {
+                for i in -1..=1 {
+                    for j in -1..=1 {
+                        if mask[(i + 1) as usize][(j + 1) as usize] == 1 {
+                            new_image[((y + j) * width + x + i) as usize] = 0xFFFFFFFF;
+                        }
+                    }
+                }
+            }
+        }
+    }
     new_image
 }

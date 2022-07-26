@@ -226,5 +226,12 @@ class Filters:
         return self._default_filter(kayn.limiarize, threshold=threshold)
 
     def hsl_equalize(self) -> QImage:
-        w, h = self.img.width(), self.img.height()
         return self._default_filter(kayn.equalize_hsl)
+
+    def erosion(self) -> QImage:
+        w, h = self.img.width(), self.img.height()
+        return self._default_filter(kayn.erosion, width=w, height=h)
+    
+    def dilation(self) -> QImage:
+        w, h = self.img.width(), self.img.height()
+        return self._default_filter(kayn.dilation, width=w, height=h)

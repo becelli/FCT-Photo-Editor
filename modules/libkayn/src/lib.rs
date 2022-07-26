@@ -158,6 +158,16 @@ fn split_color_channel(image: Vec<Pixel>, channel: usize) -> PyResult<Vec<ColorI
     Ok(operations::split_color_channel(image, channel))
 }
 
+#[pyfunction]
+fn erosion(image: Vec<Pixel>, width: u32, height: u32) -> PyResult<Vec<ColorInt>> {
+    Ok(operations::erosion(image, width as i32, height as i32))
+}
+
+#[pyfunction]
+fn dilation(image: Vec<Pixel>, width: u32, height: u32) -> PyResult<Vec<ColorInt>> {
+    Ok(operations::dilation(image, width as i32, height as i32))
+}
+
 #[pymodule]
 fn libkayn(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(grayscale, m)?)?;
@@ -183,5 +193,7 @@ fn libkayn(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(freq_normalize, m)?)?;
     m.add_function(wrap_pyfunction!(equalize_hsl, m)?)?;
     m.add_function(wrap_pyfunction!(split_color_channel, m)?)?;
+    m.add_function(wrap_pyfunction!(erosion, m)?)?;
+    m.add_function(wrap_pyfunction!(dilation, m)?)?;
     Ok(())
 }
