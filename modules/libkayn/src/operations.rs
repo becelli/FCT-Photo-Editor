@@ -95,9 +95,9 @@ pub fn _convert_hsl_to_rgb(pixel: Pixel) -> ColorInt {
 }
 
 pub fn grayscale(image: Vec<Pixel>) -> Vec<ColorInt> {
-    let mut new_image: Vec<ColorInt> = Vec::new();
+    let mut new_image: Vec<ColorInt> = vec![];
     image.iter().for_each(|pixel| {
-        let gray_tone = (((pixel[0] as u16) + (pixel[1] as u16) + (pixel[2] as u16)) / 3) as u8;
+        let gray_tone = get_gray_from_rgb(pixel[0], pixel[1], pixel[2]);
         let color = get_color_integer_from_gray(gray_tone);
         new_image.push(color);
     });
@@ -326,7 +326,7 @@ pub fn equalize(image: Vec<Pixel>) -> Vec<ColorInt> {
 pub fn gray_to_color_scale(image: Vec<Pixel>) -> Vec<ColorInt> {
     let mut new_image: Vec<ColorInt> = Vec::new();
     image.iter().for_each(|pixel| {
-        let gray = ((pixel[0] as u16 + pixel[1] as u16 + pixel[2] as u16) / 3) as u8;
+        let gray = get_gray_from_rgb(pixel[0], pixel[1], pixel[2]);
         let (r, g, b) = match gray {
             0..=63 => (0, 0, gray * 4),
             64..=127 => (0, (gray - 64) * 4, 255),
@@ -457,8 +457,7 @@ pub fn otsu_thresholding(image: Vec<Pixel>, width: u32, height: u32) -> u8 {
     let mut gray_shade_frequency = [0f32; 256];
     let image_size = width * height as u32;
     image.iter().for_each(|pixel| {
-        gray_shade_frequency
-            [((pixel[0] as u16 + pixel[1] as u16 + pixel[2] as u16) / 3) as usize] += 1.0;
+        gray_shade_frequency[get_gray_from_rgb(pixel[0], pixel[1], pixel[2]) as usize] += 1.0;
     });
     for i in 0..=max_gray_value {
         gray_shade_frequency[i as usize] = gray_shade_frequency[i as usize] / (image_size as f32);
