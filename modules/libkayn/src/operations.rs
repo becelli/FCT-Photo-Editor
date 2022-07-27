@@ -601,20 +601,23 @@ pub fn little_blind(image: Vec<Pixel>, width: u32, height: u32) -> Vec<u8>{
                         7 => ((y-1)*width+x-1) as i32,
                         _ => 0 as i32,
                     };
-                    if !(new_pixel_position < 0 || new_pixel_position > (width*height) as i32){
+                    if new_pixel_position >= 0 && new_pixel_position < (width*height) as i32 {
                         let new_pixel = image[new_pixel_position as usize];
                         if ((new_pixel[0] as u8 + new_pixel[1] as u8 + new_pixel[2] as u8)/3) == 255{
-                            if border_vector[new_pixel_position as usize] == 1 {
+                            //check if the pixel has been visited
+                            if border_vector[new_pixel_position as usize] == 0 {
                                 border_vector[new_pixel_position as usize] = 2;
                                 previous_direction = position_aux;
                                 break;
-                            }else{
-                                border_vector[new_pixel_position as usize] = 1;
-                                previous_direction = position_aux;
                             }
+                        }else{
+                            //mark pixel as visited but not border
+                            border_vector[new_pixel_position as usize] = 1;
                         }
                     }
+                    previous_direction += 1;
                 }
+                previous_direction = previous_direction%8;
             }
         }
     }
@@ -624,7 +627,7 @@ pub fn little_blind(image: Vec<Pixel>, width: u32, height: u32) -> Vec<u8>{
 pub fn count_neighbors(p:Vec<u8>) -> u8{
     let mut total_neighbors:u8 = 0;
     for i in 1..9{
-        if p[i] == 2{
+        if p[i as usize] == 2{
             total_neighbors+=1;
         }
     }
@@ -634,12 +637,12 @@ pub fn count_neighbors(p:Vec<u8>) -> u8{
 pub fn transitions(p:Vec<u8>) -> u8{
     let mut total_transitions:u8 = 0;
     for i in 1..8{
-        if p[i] == 0 && p[i+1] == 1{
-            total_transitions+=1;
+        if p[i as usize] == 0 && p[(i+1) as usize] == 1{
+            total_transitions += 1;
         }
     }
     if p[8] == 0 && p[2] == 1{
-        total_transitions+=1;
+        total_transitions += 1;
     }
     total_transitions
 }
@@ -728,10 +731,10 @@ pub fn zhang_suen_thinning(image: Vec<Pixel>, width: u32, height: u32) -> Vec<Co
         let image_borders: Vec<u8> = little_blind(thinning_image.clone(), width, height);
         let mark_to_be_erased: Vec<u8>;
         if step_count == 0{
-            mark_to_be_erased = zhang_suen_step1(image_borders, width, height);
+            mark_to_be_erased = zhang_suen_step1(image_borders.clone(), width, height);
             step_count = 1;
         }else{
-            mark_to_be_erased = zhang_suen_step2(image_borders, width, height);
+            mark_to_be_erased = zhang_suen_step2(image_borders.clone(), width, height);
             step_count = 0;
         }
         for x in 0..width{
