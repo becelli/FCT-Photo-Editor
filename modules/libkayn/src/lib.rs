@@ -168,6 +168,11 @@ fn dilation(image: Vec<Pixel>, width: u32, height: u32) -> PyResult<Vec<ColorInt
     Ok(operations::dilation(image, width as i32, height as i32))
 }
 
+#[pyfunction]
+fn zhang_suen_thinning(image: Vec<Pixel>, width: u32, height: u32) -> PyResult<Vec<ColorInt>> {
+    Ok(operations::zhang_suen_thinning(image, width as u32, height as u32))
+}
+
 #[pymodule]
 fn libkayn(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(grayscale, m)?)?;
@@ -195,5 +200,6 @@ fn libkayn(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(split_color_channel, m)?)?;
     m.add_function(wrap_pyfunction!(erosion, m)?)?;
     m.add_function(wrap_pyfunction!(dilation, m)?)?;
+    m.add_function(wrap_pyfunction!(zhang_suen_thinning, m)?)?;
     Ok(())
 }

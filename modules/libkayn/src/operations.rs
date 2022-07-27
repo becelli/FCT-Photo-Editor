@@ -571,3 +571,185 @@ pub fn dilation(image: Vec<Pixel>, width: i32, height: i32) -> Vec<ColorInt> {
     }
     new_image
 }
+
+//find the borders of a object in a binary image
+pub fn little_blind(image: Vec<Pixel>, width: u32, height: u32) -> Vec<u8>{
+    //if 0 = unvisited, 1 = visited but not border
+    //2 = border
+    let mut border_vector: Vec<u8> = vec![0; (width*height) as usize];
+    let mut previous_direction = 0u8;
+    for x in 0..width{
+        for y in 0..height{
+            let pixel = image[(y*width+x) as usize];
+            if ((pixel[0]+pixel[1]+pixel[2])/3 == 255) && 
+                (border_vector[(y*width+x) as usize] == 0){
+                for i in 0..8{
+                    //this is how the position is mapped
+                    // 7 0 1
+                    // 6 x 2
+                    // 5 4 3
+                    //x is the position of the current pixel at the image
+                    let position_aux = (i+previous_direction)%8;
+                    let new_pixel_position = match position_aux {
+                        0 => ((y-1)*width+x) as i32,
+                        1 => ((y-1)*width+x+1) as i32,
+                        2 => (y*width+x+1) as i32,
+                        3 => ((y+1)*width+x+1) as i32,
+                        4 => ((y+1)*width+x) as i32,
+                        5 => ((y+1)*width+x-1) as i32,
+                        6 => (y*width+x-1) as i32,
+                        7 => ((y-1)*width+x-1) as i32,
+                        _ => 0 as i32,
+                    };
+                    if !(new_pixel_position < 0 || new_pixel_position > (width*height) as i32){
+                        let new_pixel = image[new_pixel_position as usize];
+                        if ((new_pixel[0] as u8 + new_pixel[1] as u8 + new_pixel[2] as u8)/3) == 255{
+                            if border_vector[new_pixel_position as usize] == 1 {
+                                border_vector[new_pixel_position as usize] = 2;
+                                previous_direction = position_aux;
+                                break;
+                            }else{
+                                border_vector[new_pixel_position as usize] = 1;
+                                previous_direction = position_aux;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    border_vector
+}
+
+pub fn count_neighbors(p:Vec<u8>) -> u8{
+    let mut total_neighbors:u8 = 0;
+    for i in 1..9{
+        if p[i] == 2{
+            total_neighbors+=1;
+        }
+    }
+    total_neighbors
+}
+
+pub fn transitions(p:Vec<u8>) -> u8{
+    let mut total_transitions:u8 = 0;
+    for i in 1..8{
+        if p[i] == 0 && p[i+1] == 1{
+            total_transitions+=1;
+        }
+    }
+    if p[8] == 0 && p[2] == 1{
+        total_transitions+=1;
+    }
+    total_transitions
+}
+
+pub fn zhang_suen_step1(image_borders: Vec<u8>, width: u32, height: u32) -> Vec<u8>{
+    let mut mark_to_be_erased: Vec<u8> = vec![];
+    for x in 0..width{
+        for y in 0..height{
+            let temp_position:u32 = x*height + y;
+            let mut p: Vec<u8> = vec![];
+            p.push(image_borders[temp_position as usize]);
+            if p[0] == 2{
+                p.push(image_borders[(temp_position-width) as usize]);
+                p.push(image_borders[(temp_position-width+1) as usize]);
+                p.push(image_borders[(temp_position+1) as usize]);
+                p.push(image_borders[(temp_position+width+1) as usize]);
+                p.push(image_borders[(temp_position+width) as usize]);
+                p.push(image_borders[(temp_position+width-1) as usize]);
+                p.push(image_borders[(temp_position-1) as usize]);
+                p.push(image_borders[(temp_position-width-1) as usize]);
+                let condition1 = count_neighbors(p.clone());
+                let condition2 = transitions(p.clone());
+                let condition3 = p[1] as u8* p[3] as u8* p[5] as u8;
+                let condition4 = p[3] as u8* p[5] as u8* p[7] as u8;
+                if (condition1 >= 2) && 
+                    (condition1 <= 6) && 
+                    (condition2 == 1) && 
+                    (condition3 == 0) && 
+                    (condition4 == 0) {
+                    mark_to_be_erased.push(1u8);
+                }else{
+                    mark_to_be_erased.push(0u8);
+                }
+            }else{
+                mark_to_be_erased.push(0u8);
+            }
+        }
+    }
+    mark_to_be_erased
+}
+
+pub fn zhang_suen_step2(image_borders: Vec<u8>, width: u32, height: u32) -> Vec<u8>{
+    let mut mark_to_be_erased: Vec<u8> = vec![];
+    for x in 0..width{
+        for y in 0..height{
+            let temp_position:u32 = x*height + y;
+            let mut p: Vec<u8> = vec![];
+            p.push(image_borders[temp_position as usize]);
+            if p[0] == 2{
+                p.push(image_borders[(temp_position-width) as usize]);
+                p.push(image_borders[(temp_position-width+1) as usize]);
+                p.push(image_borders[(temp_position+1) as usize]);
+                p.push(image_borders[(temp_position+width+1) as usize]);
+                p.push(image_borders[(temp_position+width) as usize]);
+                p.push(image_borders[(temp_position+width-1) as usize]);
+                p.push(image_borders[(temp_position-1) as usize]);
+                p.push(image_borders[(temp_position-width-1) as usize]);
+                let condition1 = count_neighbors(p.clone());
+                let condition2 = transitions(p.clone());
+                let condition3 = p[1] as u8* p[3] as u8* p[7] as u8;
+                let condition4 = p[1] as u8* p[5] as u8* p[7] as u8;
+                if (condition1 >= 2) && 
+                    (condition1 <= 6) && 
+                    (condition2 == 1) && 
+                    (condition3 == 0) && 
+                    (condition4 == 0) {
+                    mark_to_be_erased.push(1u8);
+                }else{
+                    mark_to_be_erased.push(0u8);
+                }
+            }else{
+                mark_to_be_erased.push(0u8);
+            }
+        }
+    }
+    mark_to_be_erased
+}
+
+pub fn zhang_suen_thinning(image: Vec<Pixel>, width: u32, height: u32) -> Vec<ColorInt>{
+    //if 0 = unvisited, 1 = visited but not border
+    //2 = border
+    let mut thinning_image = image.to_vec().clone();
+    let mut step_count = 0;
+    let mut mark_as_altered = 0u8;
+    loop{
+        let image_borders: Vec<u8> = little_blind(thinning_image.clone(), width, height);
+        let mark_to_be_erased: Vec<u8>;
+        if step_count == 0{
+            mark_to_be_erased = zhang_suen_step1(image_borders, width, height);
+            step_count = 1;
+        }else{
+            mark_to_be_erased = zhang_suen_step2(image_borders, width, height);
+            step_count = 0;
+        }
+        for x in 0..width{
+            for y in 0..height{
+                let temp_position:u32 = x*height + y;
+                if mark_to_be_erased[temp_position as usize] == 1u8{
+                    thinning_image[temp_position as usize] = [0,0,0];
+                    mark_as_altered = 1;
+                }
+            }
+        }
+        if mark_as_altered == 0{
+            break;
+        }
+    }
+    let mut new_image: Vec<ColorInt> = Vec::new();
+    thinning_image.iter().for_each(|pixel| {
+        new_image.push(get_color_integer_from_rgb(pixel[0], pixel[1], pixel[2]));
+    });
+    new_image
+}

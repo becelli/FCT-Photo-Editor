@@ -199,6 +199,7 @@ class MainWindow(QMainWindow):
             "HSL Equalize": lambda: f.hsl_equalize(),
             "Erosion": lambda: f.erosion(),
             "Dilation": lambda: f.dilation(),
+            "Zhang Suen Thinning": lambda: f.zhang_suen_thinning(),
 
             "Binarize": lambda: self.try_to_binarize_image(f),
             "Mean": lambda: self.try_to_apply_mean_filter(f),
@@ -378,6 +379,7 @@ class MainWindow(QMainWindow):
             MenuAction("Salt and Pepper", lambda: f("Salt and Pepper"), "Ctrl+F2"),
             MenuAction("Erosion", lambda: f("Erosion"), "Ctrl+F3"),
             MenuAction("Dilation", lambda: f("Dilation"), "Ctrl+F4"),
+            MenuAction("Zhang Suen Thinning", lambda: f("Zhang Suen Thinning"), "Ctrl+F5"),
         )
         self.add_actions_to_generic_menu(filters_menu, filters)
 

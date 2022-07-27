@@ -235,3 +235,8 @@ class Filters:
     def dilation(self) -> QImage:
         w, h = self.img.width(), self.img.height()
         return self._default_filter(kayn.dilation, width=w, height=h)
+    
+    def zhang_suen_thinning(self) -> QImage:
+        w, h = self.img.width(), self.img.height()
+        return self._default_filter(kayn.zhang_suen_thinning, width=w, height=h)
+
