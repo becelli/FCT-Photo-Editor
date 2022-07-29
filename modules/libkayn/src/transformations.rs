@@ -143,7 +143,7 @@ pub fn dct_multithread(image: Vec<Pixel>, width: u32, height: u32) -> (Vec<Color
     for h in handles {
         coeff.extend(h.join().unwrap());
     }
-    let normalized = normalize_float(&coeff);
+    let normalized = freq_normalize(&coeff);
     (normalized, coeff)
 }
 
@@ -214,7 +214,7 @@ pub fn freq_lowpass(
             }
         }
     }
-    let normalized = normalize_float(&new_coeff);
+    let normalized = freq_normalize(&new_coeff);
     (normalized, new_coeff)
 }
 
@@ -234,12 +234,20 @@ pub fn freq_highpass(
             }
         }
     }
-    let normalized = normalize_float(&new_coeff);
+    let normalized = freq_normalize(&new_coeff);
     (normalized, new_coeff)
 }
 
-pub fn freq_normalize(coeff: Vec<f32>) -> Vec<ColorInt> {
-    let normalized = normalize_float(&coeff);
+pub fn freq_normalize(coeff: &Vec<f32>) -> Vec<ColorInt> {
+    let mut new_coeff: Vec<f32> = vec![];
+    for i in 0..coeff.len() {
+        if coeff[i].abs() > 255.0 {
+            new_coeff.push(255.0);
+        } else {
+            new_coeff.push(coeff[i].abs());
+        }
+    }
+    let normalized = normalize_float(&new_coeff);
     normalized
 }
 

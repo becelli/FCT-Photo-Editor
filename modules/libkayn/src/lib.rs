@@ -146,7 +146,7 @@ fn freq_highpass(
 }
 #[pyfunction]
 fn freq_normalize(image: Vec<f32>) -> PyResult<Vec<ColorInt>> {
-    Ok(transformations::freq_normalize(image))
+    Ok(transformations::freq_normalize(&image))
 }
 
 #[pyfunction]
