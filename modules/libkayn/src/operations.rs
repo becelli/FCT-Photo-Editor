@@ -603,7 +603,7 @@ pub fn transitions(p:Vec<u8>) -> u8{
             total_transitions += 1;
         }
     }
-    if p[8] == 0 && p[2] == 1{
+    if p[8] == 0 && p[1] == 1{
         total_transitions += 1;
     }
     total_transitions
