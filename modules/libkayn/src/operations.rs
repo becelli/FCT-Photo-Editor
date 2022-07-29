@@ -687,18 +687,12 @@ pub fn zhang_suen_thinning(image: Vec<Pixel>, width: u32, height: u32) -> Vec<Co
     //if 0 = unvisited, 1 = visited but not border
     //2 = border
     let mut thinning_image = image.to_vec().clone();
-    let mut step_count = 0;
     let mut mark_as_altered = 0u8;
     loop{
         let image_borders: Vec<u8> = binarize_vector(thinning_image.clone(), width, height);
-        let mark_to_be_erased: Vec<u8>;
-        if step_count == 0{
-            mark_to_be_erased = zhang_suen_step1(image_borders.clone(), width, height);
-            step_count = 1;
-        }else{
-            mark_to_be_erased = zhang_suen_step2(image_borders.clone(), width, height);
-            step_count = 0;
-        }
+        let mut mark_to_be_erased: Vec<u8>;
+        //Apply the first step of zhang suen method
+        mark_to_be_erased = zhang_suen_step1(image_borders.clone(), width, height);
         for x in 0..width{
             for y in 0..height{
                 let temp_position:u32 = x*height + y;
@@ -708,7 +702,18 @@ pub fn zhang_suen_thinning(image: Vec<Pixel>, width: u32, height: u32) -> Vec<Co
                 }
             }
         }
-        if mark_as_altered == 0 && step_count == 0{
+        //Apply the second step of zhang suen method
+        mark_to_be_erased = zhang_suen_step2(image_borders.clone(), width, height);
+        for x in 0..width{
+            for y in 0..height{
+                let temp_position:u32 = x*height + y;
+                if mark_to_be_erased[temp_position as usize] == 1u8{
+                    thinning_image[temp_position as usize] = [0,0,0];
+                    mark_as_altered = 1;
+                }
+            }
+        }
+        if mark_as_altered == 0{
             break;
         }
         mark_as_altered = 0;
