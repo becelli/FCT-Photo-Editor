@@ -572,52 +572,14 @@ pub fn dilation(image: Vec<Pixel>, width: i32, height: i32) -> Vec<ColorInt> {
     new_image
 }
 
-//find the borders of a object in a binary image
-pub fn little_blind(image: Vec<Pixel>, width: u32, height: u32) -> Vec<u8>{
-    //if 0 = unvisited, 1 = visited but not border
-    //2 = border
+//Too lazy to work with pixels, so i made this function to work with 0s and 1s
+pub fn binarize_vector(image: Vec<Pixel>, width: u32, height: u32) -> Vec<u8>{
     let mut border_vector: Vec<u8> = vec![0; (width*height) as usize];
-    let mut previous_direction = 0u8;
     for x in 0..width{
         for y in 0..height{
-            let pixel = image[(y*width+x) as usize];
-            if ((pixel[0]+pixel[1]+pixel[2])/3 == 255) && 
-                (border_vector[(y*width+x) as usize] == 0){
-                for i in 0..8{
-                    //this is how the position is mapped
-                    // 7 0 1
-                    // 6 x 2
-                    // 5 4 3
-                    //x is the position of the current pixel at the image
-                    let position_aux = (i+previous_direction)%8;
-                    let new_pixel_position = match position_aux {
-                        0 => ((y-1)*width+x) as i32,
-                        1 => ((y-1)*width+x+1) as i32,
-                        2 => (y*width+x+1) as i32,
-                        3 => ((y+1)*width+x+1) as i32,
-                        4 => ((y+1)*width+x) as i32,
-                        5 => ((y+1)*width+x-1) as i32,
-                        6 => (y*width+x-1) as i32,
-                        7 => ((y-1)*width+x-1) as i32,
-                        _ => 0 as i32,
-                    };
-                    if new_pixel_position >= 0 && new_pixel_position < (width*height) as i32 {
-                        let new_pixel = image[new_pixel_position as usize];
-                        if ((new_pixel[0] as u8 + new_pixel[1] as u8 + new_pixel[2] as u8)/3) == 255{
-                            //check if the pixel has been visited
-                            if border_vector[new_pixel_position as usize] == 0 {
-                                border_vector[new_pixel_position as usize] = 2;
-                                previous_direction = position_aux;
-                                break;
-                            }
-                        }else{
-                            //mark pixel as visited but not border
-                            border_vector[new_pixel_position as usize] = 1;
-                        }
-                    }
-                    previous_direction += 1;
-                }
-                previous_direction = previous_direction%8;
+            let pixel = image[(y*width+x) as usize]; 
+            if (pixel[0] + pixel[1] + pixel[2]) != 0 {
+                border_vector[(y*width+x) as usize] = 1;
             }
         }
     }
@@ -627,7 +589,7 @@ pub fn little_blind(image: Vec<Pixel>, width: u32, height: u32) -> Vec<u8>{
 pub fn count_neighbors(p:Vec<u8>) -> u8{
     let mut total_neighbors:u8 = 0;
     for i in 1..9{
-        if p[i as usize] == 2{
+        if p[i as usize] == 1{
             total_neighbors+=1;
         }
     }
@@ -654,7 +616,7 @@ pub fn zhang_suen_step1(image_borders: Vec<u8>, width: u32, height: u32) -> Vec<
             let temp_position:u32 = x*height + y;
             let mut p: Vec<u8> = vec![];
             p.push(image_borders[temp_position as usize]);
-            if p[0] == 2{
+            if p[0] == 1{
                 p.push(image_borders[(temp_position-width) as usize]);
                 p.push(image_borders[(temp_position-width+1) as usize]);
                 p.push(image_borders[(temp_position+1) as usize]);
@@ -728,7 +690,7 @@ pub fn zhang_suen_thinning(image: Vec<Pixel>, width: u32, height: u32) -> Vec<Co
     let mut step_count = 0;
     let mut mark_as_altered = 0u8;
     loop{
-        let image_borders: Vec<u8> = little_blind(thinning_image.clone(), width, height);
+        let image_borders: Vec<u8> = binarize_vector(thinning_image.clone(), width, height);
         let mark_to_be_erased: Vec<u8>;
         if step_count == 0{
             mark_to_be_erased = zhang_suen_step1(image_borders.clone(), width, height);
@@ -746,9 +708,10 @@ pub fn zhang_suen_thinning(image: Vec<Pixel>, width: u32, height: u32) -> Vec<Co
                 }
             }
         }
-        if mark_as_altered == 0{
+        if mark_as_altered == 0 && step_count == 0{
             break;
         }
+        mark_as_altered = 0;
     }
     let mut new_image: Vec<ColorInt> = Vec::new();
     thinning_image.iter().for_each(|pixel| {
