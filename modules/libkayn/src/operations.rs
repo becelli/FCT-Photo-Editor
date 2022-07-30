@@ -491,9 +491,11 @@ pub fn binarize_vector(image: Vec<Rgb>, width: u32, height: u32) -> Vec<bool> {
     let mut border_vector: Vec<bool> = vec![false; (width * height) as usize];
     for x in 0..width {
         for y in 0..height {
-            let pixel = image[(y * width + x) as usize];
-            if pixel[0] != 0 || pixel[1] != 0 || pixel[2] != 0 {
-                border_vector[(y * width + x) as usize] = true;
+            if !(x == 0 || y == 0 || x == width || y == height-1){
+                let pixel = image[(y * width + x) as usize];
+                if pixel[0] != 0 || pixel[1] != 0 || pixel[2] != 0 {
+                    border_vector[(y * width + x) as usize] = true;
+                }   
             }
         }
     }
