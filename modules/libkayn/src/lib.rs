@@ -1,112 +1,113 @@
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
+mod common;
 mod operations;
 mod transformations;
 
-type Pixel = [u8; 3];
-type ColorInt = u32;
+type Rgb = [u8; 3];
+type Hex = u32;
 
 #[pyfunction]
-fn grayscale(image: Vec<Pixel>) -> PyResult<Vec<ColorInt>> {
+fn grayscale(image: Vec<Rgb>) -> PyResult<Vec<Hex>> {
     Ok(operations::grayscale(image))
 }
 
 #[pyfunction]
-fn negative(image: Vec<Pixel>) -> PyResult<Vec<ColorInt>> {
+fn negative(image: Vec<Rgb>) -> PyResult<Vec<Hex>> {
     Ok(operations::negative(image))
 }
 
 #[pyfunction]
 fn convolute(
-    image: Vec<Pixel>,
+    image: Vec<Rgb>,
     mask: Vec<f32>,
     width: u32,
     height: u32,
-) -> PyResult<Vec<ColorInt>> {
-    Ok(operations::convolute(image, mask, width, height))
+) -> PyResult<Vec<Hex>> {
+    Ok(operations::convolute(image, &mask, width, height))
 }
 #[pyfunction]
-fn sobel(image: Vec<Pixel>, width: u32, height: u32) -> PyResult<Vec<ColorInt>> {
+fn sobel(image: Vec<Rgb>, width: u32, height: u32) -> PyResult<Vec<Hex>> {
     Ok(operations::sobel(image, width, height))
 }
 #[pyfunction]
-fn median(image: Vec<Pixel>, distance: u32, width: u32, height: u32) -> PyResult<Vec<ColorInt>> {
+fn median(image: Vec<Rgb>, distance: u32, width: u32, height: u32) -> PyResult<Vec<Hex>> {
     Ok(operations::median(image, distance, width, height))
 }
 
 #[pyfunction]
-fn dynamic_compression(image: Vec<Pixel>, constant: f32, gamma: f32) -> PyResult<Vec<ColorInt>> {
+fn dynamic_compression(image: Vec<Rgb>, constant: f32, gamma: f32) -> PyResult<Vec<Hex>> {
     Ok(operations::dynamic_compression(image, constant, gamma))
 }
 
 #[pyfunction]
-fn normalize(image: Vec<Pixel>) -> PyResult<Vec<ColorInt>> {
+fn normalize(image: Vec<Rgb>) -> PyResult<Vec<Hex>> {
     Ok(operations::normalize(image))
 }
 
 #[pyfunction]
-fn limiarize(image: Vec<Pixel>, threshold: u8) -> PyResult<Vec<ColorInt>> {
+fn limiarize(image: Vec<Rgb>, threshold: u8) -> PyResult<Vec<Hex>> {
     Ok(operations::limiarize(image, threshold))
 }
 
 #[pyfunction]
-fn binarize(image: Vec<Pixel>, threshold: u8) -> PyResult<Vec<ColorInt>> {
+fn binarize(image: Vec<Rgb>, threshold: u8) -> PyResult<Vec<Hex>> {
     Ok(operations::binarize(image, threshold))
 }
 #[pyfunction]
-fn equalize(image: Vec<Pixel>) -> PyResult<Vec<ColorInt>> {
+fn equalize(image: Vec<Rgb>) -> PyResult<Vec<Hex>> {
     Ok(operations::equalize(image))
 }
 #[pyfunction]
-fn gray_to_color_scale(image: Vec<Pixel>) -> PyResult<Vec<ColorInt>> {
+fn gray_to_color_scale(image: Vec<Rgb>) -> PyResult<Vec<Hex>> {
     Ok(operations::gray_to_color_scale(image))
 }
 #[pyfunction]
 fn noise_reduction_max(
-    image: Vec<Pixel>,
+    image: Vec<Rgb>,
     distance: u32,
     width: u32,
     height: u32,
-) -> PyResult<Vec<ColorInt>> {
+) -> PyResult<Vec<Hex>> {
     Ok(operations::noise_reduction_max(
         image, distance, width, height,
     ))
 }
 #[pyfunction]
 fn noise_reduction_min(
-    image: Vec<Pixel>,
+    image: Vec<Rgb>,
     distance: u32,
     width: u32,
     height: u32,
-) -> PyResult<Vec<ColorInt>> {
+) -> PyResult<Vec<Hex>> {
     Ok(operations::noise_reduction_min(
         image, distance, width, height,
     ))
 }
 #[pyfunction]
 fn noise_reduction_midpoint(
-    image: Vec<Pixel>,
+    image: Vec<Rgb>,
     distance: u32,
     width: u32,
     height: u32,
-) -> PyResult<Vec<ColorInt>> {
+) -> PyResult<Vec<Hex>> {
     Ok(operations::noise_reduction_midpoint(
         image, distance, width, height,
     ))
 }
 #[pyfunction]
-fn otsu_threshold(image: Vec<Pixel>, width: u32, height: u32) -> PyResult<u8> {
+fn otsu_threshold(image: Vec<Rgb>, width: u32, height: u32) -> PyResult<u8> {
     Ok(operations::otsu_thresholding(image, width, height))
 }
 
 #[pyfunction]
-fn dct(image: Vec<Pixel>, width: u32, height: u32) -> PyResult<(Vec<ColorInt>, Vec<f32>)> {
+fn dct(image: Vec<Rgb>, width: u32, height: u32) -> PyResult<(Vec<Hex>, Vec<f32>)> {
     Ok(transformations::dct_multithread(image, width, height))
 }
 
 #[pyfunction]
-fn idct(coefficients: Vec<f32>, width: u32, height: u32) -> PyResult<Vec<ColorInt>> {
+fn idct(coefficients: Vec<f32>, width: u32, height: u32) -> PyResult<Vec<Hex>> {
     Ok(transformations::idct_multithread(
         coefficients,
         width,
@@ -116,12 +117,12 @@ fn idct(coefficients: Vec<f32>, width: u32, height: u32) -> PyResult<Vec<ColorIn
 
 #[pyfunction]
 fn resize_nn(
-    image: Vec<Pixel>,
+    image: Vec<Rgb>,
     width: u32,
     height: u32,
     new_width: u32,
     new_height: u32,
-) -> PyResult<Vec<ColorInt>> {
+) -> PyResult<Vec<Hex>> {
     Ok(transformations::resize_nearest_neighbor(
         image, width, height, new_width, new_height,
     ))
@@ -132,7 +133,7 @@ fn freq_lowpass(
     width: u32,
     height: u32,
     radius: u32,
-) -> PyResult<(Vec<ColorInt>, Vec<f32>)> {
+) -> PyResult<(Vec<Hex>, Vec<f32>)> {
     Ok(transformations::freq_lowpass(image, width, height, radius))
 }
 #[pyfunction]
@@ -141,35 +142,35 @@ fn freq_highpass(
     width: u32,
     height: u32,
     radius: u32,
-) -> PyResult<(Vec<ColorInt>, Vec<f32>)> {
+) -> PyResult<(Vec<Hex>, Vec<f32>)> {
     Ok(transformations::freq_highpass(image, width, height, radius))
 }
 #[pyfunction]
-fn freq_normalize(image: Vec<f32>) -> PyResult<Vec<ColorInt>> {
+fn freq_normalize(image: Vec<f32>) -> PyResult<Vec<Hex>> {
     Ok(transformations::freq_normalize(&image))
 }
 
 #[pyfunction]
-fn equalize_hsl(image: Vec<Pixel>) -> PyResult<Vec<ColorInt>> {
+fn equalize_hsl(image: Vec<Rgb>) -> PyResult<Vec<Hex>> {
     Ok(operations::equalize_hsl(image))
 }
 #[pyfunction]
-fn split_color_channel(image: Vec<Pixel>, channel: usize) -> PyResult<Vec<ColorInt>> {
+fn split_color_channel(image: Vec<Rgb>, channel: usize) -> PyResult<Vec<Hex>> {
     Ok(operations::split_color_channel(image, channel))
 }
 
 #[pyfunction]
-fn erosion(image: Vec<Pixel>, width: u32, height: u32) -> PyResult<Vec<ColorInt>> {
+fn erosion(image: Vec<Rgb>, width: u32, height: u32) -> PyResult<Vec<Hex>> {
     Ok(operations::erosion(image, width as i32, height as i32))
 }
 
 #[pyfunction]
-fn dilation(image: Vec<Pixel>, width: u32, height: u32) -> PyResult<Vec<ColorInt>> {
+fn dilation(image: Vec<Rgb>, width: u32, height: u32) -> PyResult<Vec<Hex>> {
     Ok(operations::dilation(image, width as i32, height as i32))
 }
 
 #[pyfunction]
-fn zhang_suen_thinning(image: Vec<Pixel>, width: u32, height: u32) -> PyResult<Vec<ColorInt>> {
+fn zhang_suen_thinning(image: Vec<Rgb>, width: u32, height: u32) -> PyResult<Vec<Hex>> {
     Ok(operations::zhang_suen_thinning(image, width as u32, height as u32))
 }
 

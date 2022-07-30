@@ -1,13 +1,9 @@
+use crate::common::{Rgb, Hex, rgb2hex, gray2hex};
 use std::f32::consts::PI;
-type Pixel = [u8; 3];
 use std::thread;
-type ColorInt = u32;
 
-pub fn get_color_integer_from_rgb(r: u8, g: u8, b: u8) -> ColorInt {
-    (r as u32) << 16 | (g as u32) << 8 | (b as u32)
-}
 
-// pub fn dct(image: Vec<Pixel>, width: u32, height: u32) -> (Vec<ColorInt>, Vec<f32>) {
+// pub fn dct(image: Vec<Rgb>, width: u32, height: u32) -> (Vec<Hex>, Vec<f32>) {
 //     let mut coeff: Vec<f32> = vec![];
 //     let (mut ci, mut cj): (f32, f32);
 //     for u in 0..width {
@@ -41,8 +37,8 @@ pub fn get_color_integer_from_rgb(r: u8, g: u8, b: u8) -> ColorInt {
 //     (normalized, coeff)
 // }
 
-// pub fn idct(coef: Vec<f32>, width: u32, height: u32) -> Vec<ColorInt> {
-//     let mut new_image: Vec<ColorInt> = vec![];
+// pub fn idct(coef: Vec<f32>, width: u32, height: u32) -> Vec<Hex> {
+//     let mut new_image: Vec<Hex> = vec![];
 //     let (mut ci, mut cj): (f32, f32);
 //     for x in 0..width {
 //         for y in 0..height {
@@ -66,15 +62,15 @@ pub fn get_color_integer_from_rgb(r: u8, g: u8, b: u8) -> ColorInt {
 //                     sum += dctl * ci * cj;
 //                 }
 //             }
-//             let color = get_color_integer_from_rgb(sum as u8, sum as u8, sum as u8);
+//             let color = rgb2hex(sum as u8, sum as u8, sum as u8);
 //             new_image.push(color);
 //         }
 //     }
 //     new_image
 // }
 
-pub fn normalize_float(transformed: &Vec<f32>) -> Vec<ColorInt> {
-    let mut new_image: Vec<ColorInt> = vec![];
+pub fn normalize_float(transformed: &Vec<f32>) -> Vec<Hex> {
+    let mut new_image: Vec<Hex> = vec![];
     let (min, max) =
         transformed
             .iter()
@@ -89,13 +85,13 @@ pub fn normalize_float(transformed: &Vec<f32>) -> Vec<ColorInt> {
             });
     transformed.iter().for_each(|pixel| {
         let c = (255.0 * (*pixel - min as f32) / (max - min as f32)) as u8;
-        let color = get_color_integer_from_rgb(c, c, c);
+        let color = gray2hex(c);
         new_image.push(color);
     });
     new_image
 }
 
-pub fn dct_multithread(image: Vec<Pixel>, width: u32, height: u32) -> (Vec<ColorInt>, Vec<f32>) {
+pub fn dct_multithread(image: Vec<Rgb>, width: u32, height: u32) -> (Vec<Hex>, Vec<f32>) {
     let mut coeff: Vec<f32> = vec![];
     let num_cpus = num_cpus::get() as u32;
     let mut handles = vec![];
@@ -147,8 +143,8 @@ pub fn dct_multithread(image: Vec<Pixel>, width: u32, height: u32) -> (Vec<Color
     (normalized, coeff)
 }
 
-pub fn idct_multithread(coeff: Vec<f32>, width: u32, height: u32) -> Vec<ColorInt> {
-    let mut new_image: Vec<ColorInt> = vec![];
+pub fn idct_multithread(coeff: Vec<f32>, width: u32, height: u32) -> Vec<Hex> {
+    let mut new_image: Vec<Hex> = vec![];
     let num_cpus = num_cpus::get() as u32;
     let mut handles = vec![];
     let mut i = 0;
@@ -184,7 +180,7 @@ pub fn idct_multithread(coeff: Vec<f32>, width: u32, height: u32) -> Vec<ColorIn
                         }
                     }
                     let rounded = sum.round() as u8;
-                    let color = get_color_integer_from_rgb(rounded, rounded, rounded);
+                    let color = rgb2hex(rounded, rounded, rounded);
                     new_image_clone.push(color);
                 }
             }
@@ -203,7 +199,7 @@ pub fn freq_lowpass(
     width: u32,
     height: u32,
     radius: u32,
-) -> (Vec<ColorInt>, Vec<f32>) {
+) -> (Vec<Hex>, Vec<f32>) {
     let mut new_coeff: Vec<f32> = vec![];
     for y in 0..height {
         for x in 0..width {
@@ -223,7 +219,7 @@ pub fn freq_highpass(
     width: u32,
     height: u32,
     radius: u32,
-) -> (Vec<ColorInt>, Vec<f32>) {
+) -> (Vec<Hex>, Vec<f32>) {
     let mut new_coeff: Vec<f32> = vec![];
     for y in 0..height {
         for x in 0..width {
@@ -238,7 +234,7 @@ pub fn freq_highpass(
     (normalized, new_coeff)
 }
 
-pub fn freq_normalize(coeff: &Vec<f32>) -> Vec<ColorInt> {
+pub fn freq_normalize(coeff: &Vec<f32>) -> Vec<Hex> {
     let mut new_coeff: Vec<f32> = vec![];
     for i in 0..coeff.len() {
         if coeff[i].abs() > 255.0 {
@@ -252,13 +248,13 @@ pub fn freq_normalize(coeff: &Vec<f32>) -> Vec<ColorInt> {
 }
 
 pub fn resize_nearest_neighbor(
-    image: Vec<Pixel>,
+    image: Vec<Rgb>,
     width: u32,
     height: u32,
     new_width: u32,
     new_height: u32,
-) -> Vec<ColorInt> {
-    let mut new_image: Vec<ColorInt> = vec![];
+) -> Vec<Hex> {
+    let mut new_image: Vec<Hex> = vec![];
     let x_ratio = width as f32 / new_width as f32;
     let y_ratio = height as f32 / new_height as f32;
     for j in 0..new_height {
@@ -266,7 +262,7 @@ pub fn resize_nearest_neighbor(
             let x = (i as f32 * x_ratio) as u32;
             let y = (j as f32 * y_ratio) as u32;
             let color = image[(y * width + x) as usize];
-            let value = get_color_integer_from_rgb(color[0], color[1], color[2]);
+            let value = rgb2hex(color[0], color[1], color[2]);
             new_image.push(value);
         }
     }
