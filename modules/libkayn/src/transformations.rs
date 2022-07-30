@@ -235,6 +235,7 @@ pub fn freq_highpass(
 }
 
 pub fn freq_normalize(coeff: &Vec<f32>) -> Vec<Hex> {
+    // Similar to CLIP in NumPy.
     let mut new_coeff: Vec<f32> = vec![];
     for i in 0..coeff.len() {
         if coeff[i].abs() > 255.0 {

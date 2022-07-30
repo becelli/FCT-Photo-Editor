@@ -523,7 +523,7 @@ pub fn transitions(p: &Vec<bool>) -> u8 {
     total_transitions
 }
 
-pub fn zhang_suen_step1(image_borders: &Vec<bool>, width: u32, height: u32) -> Vec<bool> {
+pub fn zhang_suen_step_1(image_borders: &Vec<bool>, width: u32, height: u32) -> Vec<bool> {
     let mut marked_to_be_erased: Vec<bool> = vec![];
     for x in 0..width {
         for y in 0..height {
@@ -561,7 +561,7 @@ pub fn zhang_suen_step1(image_borders: &Vec<bool>, width: u32, height: u32) -> V
     marked_to_be_erased
 }
 
-pub fn zhang_suen_step2(image_borders: &Vec<bool>, width: u32, height: u32) -> Vec<bool> {
+pub fn zhang_suen_step_2(image_borders: &Vec<bool>, width: u32, height: u32) -> Vec<bool> {
     let mut marked_to_be_erased: Vec<bool> = vec![];
     for x in 0..width {
         for y in 0..height {
@@ -601,10 +601,11 @@ pub fn zhang_suen_step2(image_borders: &Vec<bool>, width: u32, height: u32) -> V
 
 pub fn zhang_suen_thinning(image: Vec<Rgb>, width: u32, height: u32) -> Vec<Hex> {
     let mut binary_image = binarize_vector(image, width, height);
-    let mut has_changed: bool = false;
+
     loop {
-        //Apply the first step of zhang suen method
-        let marked_to_be_erased = zhang_suen_step1(&binary_image, width, height);
+        let mut has_changed: bool = false;
+        
+        let marked_to_be_erased = zhang_suen_step_1(&binary_image, width, height);
         for x in 0..width {
             for y in 0..height {
                 let temp_position = (y * width + x) as usize;
@@ -616,7 +617,7 @@ pub fn zhang_suen_thinning(image: Vec<Rgb>, width: u32, height: u32) -> Vec<Hex>
         }
 
         //Apply the second step of zhang suen method
-        let marked_to_be_erased = zhang_suen_step2(&binary_image, width, height);
+        let marked_to_be_erased = zhang_suen_step_2(&binary_image, width, height);
         for x in 0..width {
             for y in 0..height {
                 let temp_position = (y * width + x) as usize;
@@ -630,7 +631,6 @@ pub fn zhang_suen_thinning(image: Vec<Rgb>, width: u32, height: u32) -> Vec<Hex>
         if !has_changed {
             break;
         }
-        has_changed = false;
     }
     let mut new_image: Vec<Hex> = vec![];
     binary_image.iter().for_each(|pixel| {
