@@ -487,154 +487,158 @@ pub fn dilation(image: Vec<Rgb>, width: i32, height: i32) -> Vec<Hex> {
 }
 
 //Too lazy to work with pixels, so i made this function to work with 0s and 1s
-pub fn binarize_vector(image: Vec<Pixel>, width: u32, height: u32) -> Vec<u8>{
-    let mut border_vector: Vec<u8> = vec![0; (width*height) as usize];
-    for x in 0..width{
-        for y in 0..height{
-            let pixel = image[(y*width+x) as usize]; 
-            if (pixel[0] + pixel[1] + pixel[2]) != 0 {
-                border_vector[(y*width+x) as usize] = 1;
+pub fn binarize_vector(image: Vec<Rgb>, width: u32, height: u32) -> Vec<bool> {
+    let mut border_vector: Vec<bool> = vec![false; (width * height) as usize];
+    for x in 0..width {
+        for y in 0..height {
+            let pixel = image[(y * width + x) as usize];
+            if pixel[0] != 0 || pixel[1] != 0 || pixel[2] != 0 {
+                border_vector[(y * width + x) as usize] = true;
             }
         }
     }
     border_vector
 }
 
-pub fn count_neighbors(p:Vec<u8>) -> u8{
-    let mut total_neighbors:u8 = 0;
-    for i in 1..9{
-        if p[i as usize] == 1{
-            total_neighbors+=1;
+pub fn count_neighbors(p: &Vec<bool>) -> u8 {
+    let mut total_neighbors: u8 = 0;
+    for i in 1..9 {
+        if p[i as usize] {
+            total_neighbors += 1;
         }
     }
     total_neighbors
 }
 
-pub fn transitions(p:Vec<u8>) -> u8{
-    let mut total_transitions:u8 = 0;
-    for i in 1..8{
-        if p[i as usize] == 0 && p[(i+1) as usize] == 1{
+pub fn transitions(p: &Vec<bool>) -> u8 {
+    let mut total_transitions: u8 = 0;
+    for i in 1..8 {
+        if !p[i as usize] && p[(i + 1) as usize] {
             total_transitions += 1;
         }
     }
-    if p[8] == 0 && p[1] == 1{
+    if !p[8] && p[1] {
         total_transitions += 1;
     }
     total_transitions
 }
 
-pub fn zhang_suen_step1(image_borders: Vec<u8>, width: u32, height: u32) -> Vec<u8>{
-    let mut mark_to_be_erased: Vec<u8> = vec![];
-    for x in 0..width{
-        for y in 0..height{
-            let temp_position:u32 = x*height + y;
-            let mut p: Vec<u8> = vec![];
+pub fn zhang_suen_step1(image_borders: &Vec<bool>, width: u32, height: u32) -> Vec<bool> {
+    let mut marked_to_be_erased: Vec<bool> = vec![];
+    for x in 0..width {
+        for y in 0..height {
+            let temp_position: u32 = x * height + y;
+            let mut p: Vec<bool> = vec![];
             p.push(image_borders[temp_position as usize]);
-            if p[0] == 1{
-                p.push(image_borders[(temp_position-width) as usize]);
-                p.push(image_borders[(temp_position-width+1) as usize]);
-                p.push(image_borders[(temp_position+1) as usize]);
-                p.push(image_borders[(temp_position+width+1) as usize]);
-                p.push(image_borders[(temp_position+width) as usize]);
-                p.push(image_borders[(temp_position+width-1) as usize]);
-                p.push(image_borders[(temp_position-1) as usize]);
-                p.push(image_borders[(temp_position-width-1) as usize]);
-                let condition1 = count_neighbors(p.clone());
-                let condition2 = transitions(p.clone());
-                let condition3 = p[1] as u8* p[3] as u8* p[5] as u8;
-                let condition4 = p[3] as u8* p[5] as u8* p[7] as u8;
-                if (condition1 >= 2) && 
-                    (condition1 <= 6) && 
-                    (condition2 == 1) && 
-                    (condition3 == 0) && 
-                    (condition4 == 0) {
-                    mark_to_be_erased.push(1u8);
-                }else{
-                    mark_to_be_erased.push(0u8);
+            if p[0] {
+                p.push(image_borders[(temp_position - width) as usize]);
+                p.push(image_borders[(temp_position - width + 1) as usize]);
+                p.push(image_borders[(temp_position + 1) as usize]);
+                p.push(image_borders[(temp_position + width + 1) as usize]);
+                p.push(image_borders[(temp_position + width) as usize]);
+                p.push(image_borders[(temp_position + width - 1) as usize]);
+                p.push(image_borders[(temp_position - 1) as usize]);
+                p.push(image_borders[(temp_position - width - 1) as usize]);
+                let num_neighbors = count_neighbors(&p);
+                let num_transitions = transitions(&p);
+                let neighbors_246 = p[1] && p[3] && p[5];
+                let neighbors_468 = p[3] && p[5] && p[7];
+                if (num_neighbors >= 2)
+                    && (num_neighbors <= 6)
+                    && (num_transitions == 1)
+                    && (!neighbors_246)
+                    && (!neighbors_468)
+                {
+                    marked_to_be_erased.push(true);
+                } else {
+                    marked_to_be_erased.push(false);
                 }
-            }else{
-                mark_to_be_erased.push(0u8);
+            } else {
+                marked_to_be_erased.push(false);
             }
         }
     }
-    mark_to_be_erased
+    marked_to_be_erased
 }
 
-pub fn zhang_suen_step2(image_borders: Vec<u8>, width: u32, height: u32) -> Vec<u8>{
-    let mut mark_to_be_erased: Vec<u8> = vec![];
-    for x in 0..width{
-        for y in 0..height{
-            let temp_position:u32 = x*height + y;
-            let mut p: Vec<u8> = vec![];
+pub fn zhang_suen_step2(image_borders: &Vec<bool>, width: u32, height: u32) -> Vec<bool> {
+    let mut marked_to_be_erased: Vec<bool> = vec![];
+    for x in 0..width {
+        for y in 0..height {
+            let temp_position: u32 = x * height + y;
+            let mut p: Vec<bool> = vec![];
             p.push(image_borders[temp_position as usize]);
-            if p[0] == 2{
-                p.push(image_borders[(temp_position-width) as usize]);
-                p.push(image_borders[(temp_position-width+1) as usize]);
-                p.push(image_borders[(temp_position+1) as usize]);
-                p.push(image_borders[(temp_position+width+1) as usize]);
-                p.push(image_borders[(temp_position+width) as usize]);
-                p.push(image_borders[(temp_position+width-1) as usize]);
-                p.push(image_borders[(temp_position-1) as usize]);
-                p.push(image_borders[(temp_position-width-1) as usize]);
-                let condition1 = count_neighbors(p.clone());
-                let condition2 = transitions(p.clone());
-                let condition3 = p[1] as u8* p[3] as u8* p[7] as u8;
-                let condition4 = p[1] as u8* p[5] as u8* p[7] as u8;
-                if (condition1 >= 2) && 
-                    (condition1 <= 6) && 
-                    (condition2 == 1) && 
-                    (condition3 == 0) && 
-                    (condition4 == 0) {
-                    mark_to_be_erased.push(1u8);
-                }else{
-                    mark_to_be_erased.push(0u8);
+            if p[0] {
+                p.push(image_borders[(temp_position - width) as usize]);
+                p.push(image_borders[(temp_position - width + 1) as usize]);
+                p.push(image_borders[(temp_position + 1) as usize]);
+                p.push(image_borders[(temp_position + width + 1) as usize]);
+                p.push(image_borders[(temp_position + width) as usize]);
+                p.push(image_borders[(temp_position + width - 1) as usize]);
+                p.push(image_borders[(temp_position - 1) as usize]);
+                p.push(image_borders[(temp_position - width - 1) as usize]);
+                let num_neighbors = count_neighbors(&p);
+                let num_transitions = transitions(&p);
+                let neighbors_248 = p[1] && p[3] && p[7];
+                let neighbors_268 = p[1] && p[5] && p[7];
+                if (num_neighbors >= 2)
+                    && (num_neighbors <= 6)
+                    && (num_transitions == 1)
+                    && (!neighbors_248)
+                    && (!neighbors_268)
+                {
+                    marked_to_be_erased.push(true);
+                } else {
+                    marked_to_be_erased.push(false);
                 }
-            }else{
-                mark_to_be_erased.push(0u8);
+            } else {
+                marked_to_be_erased.push(false);
             }
         }
     }
-    mark_to_be_erased
+    marked_to_be_erased
 }
 
-pub fn zhang_suen_thinning(image: Vec<Pixel>, width: u32, height: u32) -> Vec<ColorInt>{
-    //if 0 = unvisited, 1 = visited but not border
-    //2 = border
-    let mut thinning_image = image.to_vec().clone();
-    let mut mark_as_altered = 0u8;
-    loop{
-        let image_borders: Vec<u8> = binarize_vector(thinning_image.clone(), width, height);
-        let mut mark_to_be_erased: Vec<u8>;
+pub fn zhang_suen_thinning(image: Vec<Rgb>, width: u32, height: u32) -> Vec<Hex> {
+    let mut binary_image = binarize_vector(image, width, height);
+    let mut has_changed: bool = false;
+    loop {
         //Apply the first step of zhang suen method
-        mark_to_be_erased = zhang_suen_step1(image_borders.clone(), width, height);
-        for x in 0..width{
-            for y in 0..height{
-                let temp_position:u32 = x*height + y;
-                if mark_to_be_erased[temp_position as usize] == 1u8{
-                    thinning_image[temp_position as usize] = [0,0,0];
-                    mark_as_altered = 1;
+        let marked_to_be_erased = zhang_suen_step1(&binary_image, width, height);
+        for x in 0..width {
+            for y in 0..height {
+                let temp_position = (y * width + x) as usize;
+                if marked_to_be_erased[temp_position] {
+                    binary_image[temp_position] = false;
+                    has_changed = true;
                 }
             }
         }
+
         //Apply the second step of zhang suen method
-        mark_to_be_erased = zhang_suen_step2(image_borders.clone(), width, height);
-        for x in 0..width{
-            for y in 0..height{
-                let temp_position:u32 = x*height + y;
-                if mark_to_be_erased[temp_position as usize] == 1u8{
-                    thinning_image[temp_position as usize] = [0,0,0];
-                    mark_as_altered = 1;
+        let marked_to_be_erased = zhang_suen_step2(&binary_image, width, height);
+        for x in 0..width {
+            for y in 0..height {
+                let temp_position = (y * width + x) as usize;
+                if marked_to_be_erased[temp_position] {
+                    binary_image[temp_position] = false;
+                    has_changed = true;
                 }
             }
         }
-        if mark_as_altered == 0{
+
+        if !has_changed {
             break;
         }
-        mark_as_altered = 0;
+        has_changed = false;
     }
-    let mut new_image: Vec<ColorInt> = Vec::new();
-    thinning_image.iter().for_each(|pixel| {
-        new_image.push(get_color_integer_from_rgb(pixel[0], pixel[1], pixel[2]));
+    let mut new_image: Vec<Hex> = vec![];
+    binary_image.iter().for_each(|pixel| {
+        let color = match pixel {
+            true => 0xFFFFFFFF,
+            false => 0xFF000000,
+        };
+        new_image.push(color);
     });
     new_image
 }
