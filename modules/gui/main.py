@@ -8,6 +8,7 @@ import modules.colors_adapter as c_adpt
 import modules.gui.qt_override as qto
 import modules.gui.frequencyd as freqd
 import modules.gui.histogram as hist
+import modules.gui.laplacian_comparision as lap_cmp
 
 
 class MenuAction:
@@ -36,7 +37,7 @@ class MenuAction:
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.window_dimensions = (750, 330)
+        self.window_dimensions = (750, 360)
         self.input_canvas: QLabel = QLabel()
         self.output_canvas: QLabel = QLabel()
         self.initUI()
@@ -355,6 +356,7 @@ class MainWindow(QMainWindow):
             MenuAction("Colorize Gray", lambda: f("Colorize from Gray"), "Ctrl+G"),
             MenuAction("Frequency Domain", lambda: freqd.FreqDomain(self, self.input_canvas, self.output_canvas), "Ctrl+F"),
             MenuAction("Sobel Magnitudes", lambda: f("Sobel Magnitudes")),
+            MenuAction("Lap. vs Lap. of the Gaussian", lambda: lap_cmp.Comparison(self, self.input_canvas)),
             MenuAction("Color Converter", lambda: ColorConverter(self)),
             MenuAction("Histogram", lambda: hist.display_histogram(self, self.input_canvas), "Ctrl+H"),
         )
