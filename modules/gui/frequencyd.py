@@ -26,6 +26,7 @@ class FreqDomain:
         self.grid = qto.QGrid(self.window)
 
         f_label, self.f_canvas = qto.create_label_and_canvas("Frequency Domain")
+        self.f_canvas.mousePressEvent = self.do_nothing
         s_label, self.s_canvas = qto.create_label_and_canvas("Space Domain")
         apply_btn = QPushButton("Apply")
         apply_btn.clicked.connect(lambda: self.apply_changes())
@@ -80,11 +81,12 @@ class FreqDomain:
         self.add_noise_btn.setEnabled(False)
         self.stop_noise_btn.setEnabled(True)
 
-    def stop_noise(self):
-        def do_nothing(e):
-            pass
+    def do_nothing(self, e):
+        pass
 
-        self.f_canvas.mousePressEvent = do_nothing
+    def stop_noise(self):
+
+        self.f_canvas.mousePressEvent = self.do_nothing
         self.add_noise_btn.setEnabled(True)
         self.stop_noise_btn.setEnabled(False)
 
@@ -93,13 +95,16 @@ class FreqDomain:
         if x < 0 or y < 0 or x >= self.w or y >= self.h:
             return
         max_ = max(self.freq)
-        self.freq[x + y * self.w] = max_ / 4
+        level = qto.display_int_input_dialog("Level (0-255)", 0, 255, 64)
+        if level != -1:
+            ratio = level / 255
+            self.freq[x + y * self.w] = max_ * ratio
 
-        output = Filters.IDCT(self.freq, self.w, self.h)
-        qto.put_image_on_canvas(self.s_canvas, output)
+            output = Filters.IDCT(self.freq, self.w, self.h)
+            qto.put_image_on_canvas(self.s_canvas, output)
 
-        norm = Filters.get_freq_norm(self.freq, self.w, self.h)
-        qto.put_image_on_canvas(self.f_canvas, norm)
+            norm = Filters.get_freq_norm(self.freq, self.w, self.h)
+            qto.put_image_on_canvas(self.f_canvas, norm)
 
     def add_submenus(self):
         menubar = self.window.menuBar()
