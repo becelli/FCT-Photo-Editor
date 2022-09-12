@@ -3,22 +3,38 @@ from PyQt5.QtGui import QImage
 import numpy as np
 import libkayn as kayn
 from random import randint
-
+import time
 
 @dataclass
 class Filters:
     img: QImage
 
     def _default_filter(self, filter_func: callable, **kwargs) -> QImage:
+        t_start = time.perf_counter()
         w, h = self.img.width(), self.img.height()
         image = self._get_img_pixels(w, h)
+        print("Sending: ", image.shape)
+        t_get_pixels = time.perf_counter()
+        filtered = np.array(filter_func(image, **kwargs), dtype=np.uint8).astype(np.uint8)
+        # filtered = filtered.reshape(h, w, 4)
+        t_filter = time.perf_counter()
+        
+        new_image = QImage(filtered, w, h, QImage.Format.Format_RGBA8888)
+        t_create_image = time.perf_counter()
+        
+        
+        print(f"ABSOLUTED TIME FOR THE FILTER {filter_func.__name__}:")
+        print(f"Get pixels: {t_get_pixels - t_start}")
+        print(f"Filter: {t_filter - t_get_pixels}")
+        print(f"Create image: {t_create_image - t_filter}")
 
-        filtered = filter_func(image, **kwargs)
+        total = t_create_image - t_start
+        # percentual timings:
+        print("\nRELATIVE TIMINGS:")
+        print(f"Get pixels: {100 * (t_get_pixels - t_start) / total}")
+        print(f"Filter: {100 * (t_filter - t_get_pixels) / total}")
+        print(f"Create image: {100 * (t_create_image - t_filter) / total}")
 
-        new_image = QImage(w, h, QImage.Format.Format_RGB32)
-        for y in range(h):
-            for x in range(w):
-                new_image.setPixel(x, y, filtered[x + y * w])
         return new_image
 
     def area_filter(self, function: callable, mask_side, **kwargs) -> QImage:
