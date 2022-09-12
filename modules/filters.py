@@ -43,7 +43,7 @@ class Filters:
         result = function(image, width=w, height=h, **kwargs)
 
         new_w, new_h = w - mask_side + 1, h - mask_side + 1
-        new_image = QImage(new_w, new_h, QImage.Format.Format_RGB32)
+        new_image = QImage(new_w, new_h, QImage.Format.Format_RGBA8888)
         for x in range(new_w):
             for y in range(new_h):
                 new_image.setPixel(x, y, result[x * new_h + y])
@@ -61,8 +61,8 @@ class Filters:
 
     def _get_img_pixels(self, w, h):
         bits = np.array(self.img.bits().asarray(w * h * 4))
-        # Reverse the order of the pixels to match the order of the image
-        pixels = bits.reshape(h * w, 4)[:, :3][:, ::-1]
+        pixels = bits.reshape(h, w, 4) # Use matrix to represent the image
+        pixels = pixels[:, :, [2, 1, 0, 3]] # BGR -> RGB
         return pixels
 
     def grayscale(self) -> QImage:

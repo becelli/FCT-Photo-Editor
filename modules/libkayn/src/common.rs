@@ -1,6 +1,8 @@
 pub type Hex = u32;
 pub type Rgb = [u8; 3];
+pub type Rgba = [u8; 4];
 pub type Hsl = [u8; 3];
+pub type Image = Vec<Vec<Rgba>>;
 pub type Gray = u8;
 
 pub fn rgb2hex(r: u8, g: u8, b: u8) -> Hex {

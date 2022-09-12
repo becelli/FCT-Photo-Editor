@@ -2,13 +2,19 @@ use crate::common::*;
 use crate::transformations;
 use std::thread;
 
-pub fn grayscale(image: Vec<Rgb>) -> Vec<Hex> {
-    let mut new_image: Vec<Hex> = vec![];
-    image.iter().for_each(|pixel| {
-        let gray_tone = rgb2gray(pixel[0], pixel[1], pixel[2]);
-        let color = gray2hex(gray_tone);
-        new_image.push(color);
-    });
+pub fn grayscale(image: Image) -> Image {
+    let width = image.len();
+    let height = image[0].len();
+
+    let mut new_image = vec![vec![Rgba::default(); height]; width];
+    for x in 0..width {
+        for y in 0..height {
+            let pixel = image[x][y];
+            let (r, g, b, a) = (pixel[0], pixel[1], pixel[2], pixel[3]);
+            let gray = rgb2gray(r, g, b);
+            new_image[x][y] = [gray, gray, gray, a];
+        }
+    }
     new_image
 }
 

@@ -29,7 +29,7 @@ class QObjects:
     @staticmethod
     def canvas(width: int, height: int) -> QLabel:
         img = QLabel()
-        image = QImage(width, height, QImage.Format.Format_RGB32)
+        image = QImage(width, height, QImage.Format.Format_RGBA8888)
         QObjects._fill_rgb_gradient(image, width, height)
         put_image_on_canvas(img, image)
         return img
