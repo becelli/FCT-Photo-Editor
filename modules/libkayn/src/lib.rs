@@ -4,32 +4,25 @@ use pyo3::wrap_pyfunction;
 mod common;
 mod operations;
 mod transformations;
-
-type Rgb = [u8; 3];
-type Hex = u32;
+use common::{Hex, Image, Rgb};
 
 #[pyfunction]
-fn grayscale(image: Vec<Rgb>) -> PyResult<Vec<Hex>> {
+fn grayscale(image: Image) -> PyResult<Image> {
     Ok(operations::grayscale(image))
 }
 
 #[pyfunction]
-fn negative(image: Vec<Rgb>) -> PyResult<Vec<Hex>> {
+fn negative(image: Image) -> PyResult<Image> {
     Ok(operations::negative(image))
 }
 
 #[pyfunction]
-fn convolute(
-    image: Vec<Rgb>,
-    mask: Vec<f32>,
-    width: u32,
-    height: u32,
-) -> PyResult<Vec<Hex>> {
-    Ok(operations::convolute(image, &mask, width, height))
+fn convolute(image: Image, mask: Vec<f32>) -> PyResult<Image> {
+    Ok(operations::convolute(image, &mask))
 }
 #[pyfunction]
-fn sobel(image: Vec<Rgb>, width: u32, height: u32) -> PyResult<Vec<Hex>> {
-    Ok(operations::sobel(image, width, height))
+fn sobel(image: Image) -> PyResult<Image> {
+    Ok(operations::sobel(image))
 }
 #[pyfunction]
 fn median(image: Vec<Rgb>, distance: u32, width: u32, height: u32) -> PyResult<Vec<Hex>> {
@@ -37,26 +30,26 @@ fn median(image: Vec<Rgb>, distance: u32, width: u32, height: u32) -> PyResult<V
 }
 
 #[pyfunction]
-fn dynamic_compression(image: Vec<Rgb>, constant: f32, gamma: f32) -> PyResult<Vec<Hex>> {
+fn dynamic_compression(image: Image, constant: f32, gamma: f32) -> PyResult<Image> {
     Ok(operations::dynamic_compression(image, constant, gamma))
 }
 
 #[pyfunction]
-fn normalize(image: Vec<Rgb>) -> PyResult<Vec<Hex>> {
+fn normalize(image: Image) -> PyResult<Image> {
     Ok(operations::normalize(image))
 }
 
 #[pyfunction]
-fn limiarize(image: Vec<Rgb>, threshold: u8) -> PyResult<Vec<Hex>> {
+fn limiarize(image: Image, threshold: u8) -> PyResult<Image> {
     Ok(operations::limiarize(image, threshold))
 }
 
 #[pyfunction]
-fn binarize(image: Vec<Rgb>, threshold: u8) -> PyResult<Vec<Hex>> {
+fn binarize(image: Image, threshold: u8) -> PyResult<Image> {
     Ok(operations::binarize(image, threshold))
 }
 #[pyfunction]
-fn equalize(image: Vec<Rgb>) -> PyResult<Vec<Hex>> {
+fn equalize(image: Image) -> PyResult<Image> {
     Ok(operations::equalize(image))
 }
 #[pyfunction]
@@ -171,7 +164,11 @@ fn dilation(image: Vec<Rgb>, width: u32, height: u32) -> PyResult<Vec<Hex>> {
 
 #[pyfunction]
 fn zhang_suen_thinning(image: Vec<Rgb>, width: u32, height: u32) -> PyResult<Vec<Hex>> {
-    Ok(operations::zhang_suen_thinning(image, width as u32, height as u32))
+    Ok(operations::zhang_suen_thinning(
+        image,
+        width as u32,
+        height as u32,
+    ))
 }
 
 #[pymodule]

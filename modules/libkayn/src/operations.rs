@@ -5,61 +5,67 @@ use std::thread;
 pub fn grayscale(image: Image) -> Image {
     let width = image.len();
     let height = image[0].len();
-
     let mut new_image = vec![vec![Rgba::default(); height]; width];
+
     for x in 0..width {
         for y in 0..height {
-            let pixel = image[x][y];
-            let (r, g, b, a) = (pixel[0], pixel[1], pixel[2], pixel[3]);
+            let [r, g, b, a] = image[x][y];
             let gray = rgb2gray(r, g, b);
-            new_image[x][y] = [gray, gray, gray, a];
+            let new_pixel = [gray, gray, gray, a];
+            new_image[x][y] = new_pixel;
         }
     }
     new_image
 }
 
-pub fn negative(image: Vec<Rgb>) -> Vec<Hex> {
-    let mut new_image: Vec<Hex> = vec![];
-    image.iter().for_each(|pixel| {
-        let r = 255 - pixel[0];
-        let g = 255 - pixel[1];
-        let b = 255 - pixel[2];
-        let color = rgb2hex(r, g, b);
-        new_image.push(color);
-    });
+pub fn negative(image: Image) -> Image {
+    let width = image.len();
+    let height = image[0].len();
+    let mut new_image = vec![vec![Rgba::default(); height]; width];
+
+    for x in 0..width {
+        for y in 0..height {
+            let [r, g, b, a] = image[x][y];
+            let new_pixel = [255 - r, 255 - g, 255 - b, a];
+            new_image[x][y] = new_pixel;
+        }
+    }
     new_image
 }
 
-pub fn convolute(image: Vec<Rgb>, mask: &Vec<f32>, width: u32, height: u32) -> Vec<Hex> {
+pub fn convolute(image: Image, mask: &Vec<f32>) -> Image {
     let m_size = mask.len() as u32;
     let m_side = (m_size as f32).sqrt().round() as u32;
     let half = (m_side / 2) as u32;
-    let mut new_image: Vec<Rgb> = vec![];
 
-    for x in half..(width - half) {
-        for y in half..(height - half) {
-            let mut new_pixel = [0f32; 3];
+    let width = image.len();
+    let height = image[0].len();
+    let mut new_image: Image = vec![vec![Rgba::default(); height]; width];
+
+    for x in half..(width as u32 - half) {
+        for y in half..(height as u32 - half) {
+            let mut new_pixel = [0f32; 4];
             for i in 0..m_size {
-                let x_: u32 = x + (i % m_side) - half;
-                let y_: u32 = y + (i / m_side) - half;
-                let aux_pixel = image[(y_ * width + x_) as usize];
-                aux_pixel.iter().enumerate().for_each(|(ch, color)| {
-                    new_pixel[ch] += *color as f32 * mask[i as usize];
-                });
+                let x_ = (x + (i % m_side) - half) as usize;
+                let y_ = (y + (i / m_side) - half) as usize;
+                let aux_pixel = image[x_][y_];
+                for j in 0..3 {
+                    new_pixel[j] += aux_pixel[j] as f32 * mask[i as usize];
+                }
             }
             let pixel = [
                 (new_pixel[0].round() as u8),
                 (new_pixel[1].round() as u8),
                 (new_pixel[2].round() as u8),
+                255,
             ];
-            new_image.push(pixel);
+            new_image[x as usize][y as usize] = pixel;
         }
     }
-    let normalized = normalize(new_image);
-    normalized
+    normalize(new_image)
 }
 
-pub fn sobel(image: Vec<Rgb>, width: u32, height: u32) -> Vec<Hex> {
+pub fn sobel(image: Image) -> Image {
     #[rustfmt::skip]
     let kernel_x = vec![-0.25, 0.0, 0.25,
                         -0.50, 0.0, 0.50,
@@ -68,31 +74,27 @@ pub fn sobel(image: Vec<Rgb>, width: u32, height: u32) -> Vec<Hex> {
     let kernel_y = vec![-0.25, -0.50, -0.25,
                         0.00,  0.00,  0.00,
                         0.25,  0.50,  0.25];
-    let mut handlers = vec![];
 
-    let clone = image.clone();
-    handlers.push(thread::spawn(move || {
-        convolute(clone, &kernel_x, width, height)
-    }));
-
-    let clone = image.clone();
-    handlers.push(thread::spawn(move || {
-        convolute(clone, &kernel_y, width, height)
-    }));
-
-    let mut images = vec![];
-    for handler in handlers {
-        images.push(handler.join().unwrap());
-    }
-    let mut magnitudes: Vec<f32> = vec![];
-    images[0].iter().zip(images[1].iter()).for_each(|(x, y)| {
-        let gray1 = hex2gray(*x) as f32;
-        let gray2 = hex2gray(*y) as f32;
-        let mag = (gray1.powi(2) + gray2.powi(2)).sqrt() as f32;
-        magnitudes.push(mag);
+    let images = thread::scope(|s| {
+        let sobelx = s.spawn(|| convolute(image.clone(), &kernel_x));
+        let sobely = s.spawn(|| convolute(image.clone(), &kernel_y));
+        [sobelx.join().unwrap(), sobely.join().unwrap()]
     });
-    let normalized = transformations::normalize_float(&magnitudes);
-    normalized
+
+    let mut magnitudes: Vec<Vec<f32>> = vec![vec![0.0; image[0].len()]; image.len()];
+    let width = images[0].len();
+    let height = images[0][0].len();
+    for x in 0..width {
+        for y in 0..height {
+            let [r1, g1, b1, _] = images[0][x][y];
+            let [r2, g2, b2, _] = images[1][x][y];
+            let gray1 = rgb2gray(r1, g1, b1);
+            let gray2 = rgb2gray(r2, g2, b2);
+            let magnitude = (gray1 as f32).hypot(gray2 as f32);
+            magnitudes[x][y] = magnitude;
+        }
+    }
+    transformations::normalize_float(&magnitudes)
 }
 
 pub fn median(image: Vec<Rgb>, distance: u32, width: u32, height: u32) -> Vec<Hex> {
@@ -128,113 +130,139 @@ pub fn median(image: Vec<Rgb>, distance: u32, width: u32, height: u32) -> Vec<He
     new_image
 }
 
-pub fn dynamic_compression(image: Vec<Rgb>, constant: f32, gamma: f32) -> Vec<Hex> {
-    let mut compressed_img: Vec<Rgb> = vec![];
-    image.iter().for_each(|pixel| {
-        let r = (pixel[0] as f32).powf(gamma) * constant;
-        let g = (pixel[1] as f32).powf(gamma) * constant;
-        let b = (pixel[2] as f32).powf(gamma) * constant;
-        let color = [r as u8, g as u8, b as u8];
-        compressed_img.push(color);
-    });
+pub fn dynamic_compression(image: Image, constant: f32, gamma: f32) -> Image {
+    let width = image.len();
+    let height = image[0].len();
+    let mut new_image = vec![vec![Rgba::default(); height]; width];
 
-    let new_image = normalize(compressed_img);
+    let compress = |x: u8| {
+        let x = x as f32;
+        let c = constant;
+        let g = gamma;
+        let y = c * x.powf(g);
+        y as u8
+    };
+    for x in 0..width {
+        for y in 0..height {
+            let [r, g, b, a] = image[x][y];
+            let new_pixel = [compress(r), compress(g), compress(b), a];
+            new_image[x][y] = new_pixel;
+        }
+    }
+    normalize(new_image)
+}
+
+pub fn normalize(image: Image) -> Image {
+    let width = image.len();
+    let height = image[0].len();
+    let mut new_image = vec![vec![Rgba::default(); height]; width];
+
+    let (min, max) =
+        image
+            .iter()
+            .flatten()
+            .fold(([255u8; 3], [0u8; 3]), |(mut min, mut max), pixel| {
+                for i in 0..3 {
+                    if pixel[i] < min[i] {
+                        min[i] = pixel[i];
+                    } else if pixel[i] > max[i] {
+                        max[i] = pixel[i];
+                    }
+                }
+                (min, max)
+            });
+
+    let norm = |v: [u8; 4], i| {
+        let diff = (v[i] - min[i]) as f32;
+        let range = (max[i] - min[i]) as f32;
+        let norm = (diff / range) * 255.0;
+        let rounded = norm.round() as u8;
+        rounded
+    };
+
+    for x in 0..width {
+        for y in 0..height {
+            let pixel = image[x][y];
+            let a = pixel[3];
+            let (r, g, b) = (norm(pixel, 0), norm(pixel, 1), norm(pixel, 2));
+            let new_pixel = [r, g, b, a];
+            new_image[x][y] = new_pixel;
+        }
+    }
     new_image
 }
 
-pub fn normalize(image: Vec<Rgb>) -> Vec<Hex> {
-    let mut new_image: Vec<Hex> = vec![];
-    let (min, max) = image
-        .iter()
-        .fold(([255u8; 3], [0u8; 3]), |(mut min, mut max), pixel| {
-            if pixel[0] < min[0] {
-                min[0] = pixel[0];
-            }
-            if pixel[1] < min[1] {
-                min[1] = pixel[1];
-            }
-            if pixel[2] < min[2] {
-                min[2] = pixel[2];
-            }
-            if pixel[0] > max[0] {
-                max[0] = pixel[0];
-            }
-            if pixel[1] > max[1] {
-                max[1] = pixel[1];
-            }
-            if pixel[2] > max[2] {
-                max[2] = pixel[2];
-            }
-            (min, max)
-        });
+pub fn limiarize(image: Image, limiar: u8) -> Image {
+    let width = image.len();
+    let height = image[0].len();
+    let mut new_image = image.clone();
 
-    image.iter().for_each(|pixel| {
-        let r = 255.0 * (pixel[0] - min[0]) as f32 / (max[0] - min[0]) as f32;
-        let g = 255.0 * (pixel[1] - min[1]) as f32 / (max[1] - min[1]) as f32;
-        let b = 255.0 * (pixel[2] - min[2]) as f32 / (max[2] - min[2]) as f32;
-        let color = rgb2hex(r as u8, g as u8, b as u8);
-        new_image.push(color);
-    });
+    for x in 0..width {
+        for y in 0..height {
+            for i in 0..3 {
+                if image[x][y][i] < limiar {
+                    new_image[x][y][i] = 0;
+                }
+            }
+        }
+    }
     new_image
 }
 
-pub fn limiarize(image: Vec<Rgb>, limiar: u8) -> Vec<Hex> {
-    let mut new_image: Vec<Hex> = vec![];
-    image.iter().for_each(|pixel| {
-        let mut new_pixel = pixel.clone();
-        pixel.iter().enumerate().for_each(|(ch, color)| {
-            if *color < limiar + 1 {
-                new_pixel[ch] = 0;
+pub fn binarize(image: Image, limiar: u8) -> Image {
+    let width = image.len();
+    let height = image[0].len();
+    let mut new_image = vec![vec![Rgba::default(); height]; width];
+
+    for x in 0..width {
+        for y in 0..height {
+            for i in 0..3 {
+                new_image[x][y][i] = if image[x][y][i] < limiar { 0 } else { 255 };
             }
-        });
-        let color = rgb2hex(new_pixel[0], new_pixel[1], new_pixel[2]);
-        new_image.push(color);
-    });
+            new_image[x][y][3] = image[x][y][3];
+        }
+    }
+
     new_image
 }
 
-pub fn binarize(image: Vec<Rgb>, limiar: u8) -> Vec<Hex> {
-    let mut new_image: Vec<Hex> = vec![];
-    image.iter().for_each(|pixel| {
-        let mut new_pixel = [0u8; 3];
-        pixel.iter().enumerate().for_each(|(ch, color)| {
-            if *color > limiar {
-                new_pixel[ch] = 255;
-            } else {
-                new_pixel[ch] = 0;
-            }
-        });
-        let color = rgb2hex(new_pixel[0], new_pixel[1], new_pixel[2]);
-        new_image.push(color);
-    });
-    new_image
-}
+pub fn equalize(image: Image) -> Image {
+    let width = image.len();
+    let height = image[0].len();
 
-pub fn equalize(image: Vec<Rgb>) -> Vec<Hex> {
     let mut histogram: Vec<u32> = vec![0; 256];
-    image.iter().for_each(|pixel| {
-        let r = pixel[0] as u32;
-        let g = pixel[1] as u32;
-        let b = pixel[2] as u32;
-        histogram[r as usize] += 1;
-        histogram[g as usize] += 1;
-        histogram[b as usize] += 1;
+    image.iter().for_each(|row| {
+        row.iter().for_each(|pixel| {
+            let r = pixel[0] as usize;
+            let g = pixel[1] as usize;
+            let b = pixel[2] as usize;
+            histogram[r] += 1;
+            histogram[g] += 1;
+            histogram[b] += 1;
+        })
     });
+
     let mut sum: u32 = 0;
     let mut new_histogram: Vec<u32> = vec![0; 256];
+
     histogram.iter().enumerate().for_each(|(i, count)| {
         sum += *count;
         new_histogram[i] = sum;
     });
-    let mut new_image: Vec<Hex> = vec![];
-    image.iter().for_each(|pixel| {
-        let (r, g, b) = (pixel[0] as u32, pixel[1] as u32, pixel[2] as u32);
-        let new_r = (new_histogram[r as usize] * 255) / sum;
-        let new_g = (new_histogram[g as usize] * 255) / sum;
-        let new_b = (new_histogram[b as usize] * 255) / sum;
-        let color = rgb2hex(new_r as u8, new_g as u8, new_b as u8);
-        new_image.push(color);
-    });
+
+    let mut new_image = vec![vec![Rgba::default(); height]; width];
+    for x in 0..width {
+        for y in 0..height {
+            let pixel = image[x][y];
+            let [r, g, b, a] = pixel;
+            let new_r = (new_histogram[r as usize] * 255) / sum;
+            let new_g = (new_histogram[g as usize] * 255) / sum;
+            let new_b = (new_histogram[b as usize] * 255) / sum;
+            let new_pixel = [new_r as u8, new_g as u8, new_b as u8, a];
+            new_image[x][y] = new_pixel;
+        }
+    }
+
     new_image
 }
 pub fn gray_to_color_scale(image: Vec<Rgb>) -> Vec<Hex> {
@@ -253,12 +281,7 @@ pub fn gray_to_color_scale(image: Vec<Rgb>) -> Vec<Hex> {
     new_image
 }
 
-pub fn noise_reduction_max(
-    image: Vec<Rgb>,
-    distance: u32,
-    width: u32,
-    height: u32,
-) -> Vec<Hex> {
+pub fn noise_reduction_max(image: Vec<Rgb>, distance: u32, width: u32, height: u32) -> Vec<Hex> {
     let m_size = (distance * 2 + 1).pow(2) as u32;
     let m_side = 2 * distance + 1;
     let half = (m_side / 2) as u32;
@@ -291,12 +314,7 @@ pub fn noise_reduction_max(
     new_image
 }
 
-pub fn noise_reduction_min(
-    image: Vec<Rgb>,
-    distance: u32,
-    width: u32,
-    height: u32,
-) -> Vec<Hex> {
+pub fn noise_reduction_min(image: Vec<Rgb>, distance: u32, width: u32, height: u32) -> Vec<Hex> {
     let m_size = (distance * 2 + 1).pow(2) as u32;
     let m_side = 2 * distance + 1;
     let half = (m_side / 2) as u32;
@@ -497,11 +515,11 @@ pub fn binarize_vector(image: Vec<Rgb>, width: u32, height: u32) -> Vec<bool> {
     let mut border_vector: Vec<bool> = vec![false; (width * height) as usize];
     for x in 0..width {
         for y in 0..height {
-            if !(x == 0 || y == 0 || x == width-1 || y == height-1){
+            if !(x == 0 || y == 0 || x == width - 1 || y == height - 1) {
                 let pixel = image[(y * width + x) as usize];
                 if pixel[0] != 0 || pixel[1] != 0 || pixel[2] != 0 {
                     border_vector[(y * width + x) as usize] = true;
-                }   
+                }
             }
         }
     }
@@ -612,7 +630,7 @@ pub fn zhang_suen_thinning(image: Vec<Rgb>, width: u32, height: u32) -> Vec<Hex>
 
     loop {
         let mut has_changed: bool = false;
-        
+
         let marked_to_be_erased = zhang_suen_step_1(&binary_image, width, height);
         for x in 0..width {
             for y in 0..height {

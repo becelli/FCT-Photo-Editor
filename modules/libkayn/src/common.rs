@@ -3,22 +3,11 @@ pub type Rgb = [u8; 3];
 pub type Rgba = [u8; 4];
 pub type Hsl = [u8; 3];
 pub type Image = Vec<Vec<Rgba>>;
+// pub type DCTCoefficients = Vec<Vec<f32>>;
 pub type Gray = u8;
 
 pub fn rgb2hex(r: u8, g: u8, b: u8) -> Hex {
     (r as u32) << 16 | (g as u32) << 8 | (b as u32)
-}
-pub fn hex2rgb(hex: Hex) -> Rgb {
-    [(hex >> 16) as u8, (hex >> 8) as u8, hex as u8]
-}
-
-pub fn gray2hex(gray: u8) -> Hex {
-    (gray as u32) << 16 | (gray as u32) << 8 | (gray as u32)
-}
-
-pub fn hex2gray(hex: Hex) -> Gray {
-    let [r, g, b] = hex2rgb(hex);
-    rgb2gray(r, g, b)
 }
 
 pub fn rgb2gray(r: u8, g: u8, b: u8) -> Gray {
@@ -91,6 +80,6 @@ pub fn hsl2hex(pixel: Hsl) -> Hex {
     };
 
     (r, g, b) = ((r + m) * 255.0, (g + m) * 255.0, (b + m) * 255.0);
-    let value : Hex = rgb2hex(r as u8, g as u8, b as u8);
+    let value: Hex = rgb2hex(r as u8, g as u8, b as u8);
     value
 }

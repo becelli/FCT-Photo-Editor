@@ -40,13 +40,11 @@ class Filters:
     def area_filter(self, function: callable, mask_side, **kwargs) -> QImage:
         w, h = self.img.width(), self.img.height()
         image = self._get_img_pixels(w, h)
-        result = function(image, width=w, height=h, **kwargs)
+        result = np.array(function(image, **kwargs), dtype=np.uint8).astype(np.uint8)
+        result = result.reshape(h, w, 4)
 
         new_w, new_h = w - mask_side + 1, h - mask_side + 1
-        new_image = QImage(new_w, new_h, QImage.Format.Format_RGBA8888)
-        for x in range(new_w):
-            for y in range(new_h):
-                new_image.setPixel(x, y, result[x * new_h + y])
+        new_image = QImage(result, new_w, new_h, QImage.Format.Format_RGBA8888)
 
         return new_image
 
